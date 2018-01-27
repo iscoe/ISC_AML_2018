@@ -5,21 +5,21 @@ import params
 import numpy as np
 import random
 from PIL import Image
-                   
+
+"""
+Function to generate and save a downsized image from original FMOW dataset
+[ Params ]: 
+    filepath: path to the json file for parsing
+    train_dir: directory to save the images parsed from the json file
+    contextMultWidth: how much context width to add from the original FMOW image
+    contextMultHeight: how much context height to add to the original FMow image
+[ Returns ]: 
+    allResults: an np.array of the images specified from the json file
+    allCats: an np.array of the corresponding categories
+"""              
 def prep_image(filepath, train_dir, contextMultWidth = 0.15,
         contextMultHeight = 0.15):
-    """
-    Function to generate and save a downsized image from original FMOW dataset
-    [ Params ]: 
-        filepath: path to the json file for parsing
-        train_dir: directory to save the images parsed from the json file
-        contextMultWidth: how much context width to add from the original FMOW image
-        contextMultHeight: how much context height to add to the original FMow image
-    [ Returns ]: 
-        allResults: an np.array of the images specified from the json file
-        allCats: an np.array of the corresponding categories
-    """
-    filename = os.path.basename(filepath)
+   filename = os.path.basename(filepath)
     jsonData = json.load(open(filepath))
     img_filename = filepath[:-5] + '.jpg' 
     basename = os.path.basename(img_filename[:-4])
@@ -102,32 +102,31 @@ def prep_image(filepath, train_dir, contextMultWidth = 0.15,
             return np.asarray(allResults), allCats
         else:
             return None, category
-
+"""
+Loads data from a dataset outlay in the format specified by the fmow dataset. Will
+not save images if fmow_all_filenames.npy file already exists in train_dir.
+Data layout expected is as followed.
+    Dataset_dir/
+        category_1_dir/
+            category_1_seq_1_dir/
+                category_1_seq_1_img_1.jpg
+                category_1_seq_1_1_img_1.json
+                category_1_seq_1_img_2.jpg
+                category_1_seq_1_1_img_2.json
+                ...
+            category_1_seq_2_dir/
+                ...
+            ...
+        cat_2_dir
+            cat_2_seq_1_dir/
+            ...
+    [ Params ]: 
+        data_dir: the location of the fmow dataset on local linux machine
+        train_dir: directory to save out sub images for input to algorithms
+    [ Returns ]: 
+        all_jsons: a list of all the paths to the files for easy reaccess
+"""
 def load_from_full(data_dir,train_dir='train/'):
-    """
-    Loads data from a dataset outlay in the format specified by the fmow dataset. Will
-    not save images if fmow_all_filenames.npy file already exists in train_dir.
-    Data layout expected is as followed.
-        Dataset_dir/
-            category_1_dir/
-                category_1_seq_1_dir/
-                    category_1_seq_1_img_1.jpg
-                    category_1_seq_1_1_img_1.json
-                    category_1_seq_1_img_2.jpg
-                    category_1_seq_1_1_img_2.json
-                    ...
-                category_1_seq_2_dir/
-                    ...
-                ...
-            cat_2_dir
-                cat_2_seq_1_dir/
-                ...
-        [ Params ]: 
-            data_dir: the location of the fmow dataset on local linux machine
-            train_dir: directory to save out sub images for input to algorithms
-        [ Returns ]: 
-            all_jsons: a list of all the paths to the files for easy reaccess
-    """
     counter = 0
     if not os.path.exists(os.path.join(train_dir,'fmow_all_filenames.npy')):
         all_jsons = []
