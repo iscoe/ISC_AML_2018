@@ -7,17 +7,21 @@ import json
 sys.path.append('./data_ml_functions/DenseNet')
 from keras.models import Model, load_model, Sequential
 import numpy as np
+import tensorflow as tf
 from keras.applications import imagenet_utils
 from keras.utils.np_utils import to_categorical
 from PIL import Image
 from data_ml_functions.mlFunctions import get_cnn_model, img_metadata_generator,get_lstm_model,codes_metadata_generator
  
 def main(args):
+    model = Sequential()
+
     model = load_model('cnn_image_only.model')
     model.compile(loss='categorical_crossentropy', optimizer='SGD',metrics=['accuracy'])
     
     input_path= args[1]
-    output_path = args[2]
+    output_file = args[2]
+    print(output_file)
     
     yTest = np.load(os.path.join(input_path,'testlabels.npy'))
     file_list = [0] * yTest.shape[0]
@@ -29,7 +33,7 @@ def main(args):
     xTest = prep_test_images(file_list)
     yTest_unsorted = np.load(os.path.join(input_path,'testlabels.npy'))
     preds = model.predict(xTest)
-    np.save(os.path.join(output_path,'predictions.npy'),preds)
+    np.save(output_file,preds)
     hits = 0
     for pred, y in zip(preds, yTest):
         if np.argmax(pred) == np.argmax(y):
@@ -93,5 +97,4 @@ def category_map(name):
 
 
 if __name__ == '__main__':
-
      main(sys.argv)
