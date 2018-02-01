@@ -1,1 +1,6 @@
-Here we will place scripts for carrying out the evaluation for the ISC challenge.
+#  ISC Adversarial Machine Learning Challenge 2018
+
+
+## Building a Dockerized Defense
+
+
