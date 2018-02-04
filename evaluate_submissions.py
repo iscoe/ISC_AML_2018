@@ -25,9 +25,12 @@ import numpy as np
 
 
 
-
+# XXX: may update to use python logging package later
 def _warning(message):
     print('WARNING: %s' % message)
+    
+def _error(message):
+    print('ERROR: %s' % message)
 
 
 
@@ -55,6 +58,10 @@ def prepare_ae(ae_directory, ref_directory, tgt_directory, f_constraint):
        f_constraint  : A function f(x,y) which ensures image x is close enough to image y.
 
     """
+    if not os.path.exists(ae_directory):
+        _error('AE directory not found!')
+        return
+    
     for filename in glob.glob(os.path.join(ref_directory, '*png')):
         path, img_name = os.path.split(filename)
         x_ref = np.array(Image.open(filename), dtype=np.uint8)
