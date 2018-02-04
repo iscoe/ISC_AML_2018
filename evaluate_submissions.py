@@ -26,6 +26,11 @@ import numpy as np
 
 
 
+def _warning(message):
+    print('WARNING: %s' % message)
+
+
+
 def enforce_ell_infty_constraint(x_ae, x_orig, epsilon, clip_min=0, clip_max=255):
     """ Returns a copy of x_ae that satisfies 
 
@@ -83,8 +88,9 @@ def _are_images_equivalent_p(dir_a, dir_b):
 def run_attack_vs_defense(attack_zip, defense_zip, ref_dir, epsilon_values):
     """ Runs a single attack against a single defense.
     """
-    raw_dir = tempfile.TemporaryDirectory()
-    work_dir = tempfile.TemporaryDirectory()
+    raw_dir = tempfile.TemporaryDirectory()          # we unzip attacker's images here
+    def_in_dir = tempfile.TemporaryDirectory()       # images ready for defense live here
+    def_out_dir = tempfile.TemporaryDirectory()      # output from defense goes here
 
     for epsilon in epsilon_values:
         f_con = partial(enforce_ell_infty_constraint, epsilon=epsilon)
@@ -93,9 +99,9 @@ def run_attack_vs_defense(attack_zip, defense_zip, ref_dir, epsilon_values):
         with ZipFile(attack_zip, 'r') as zf:
             zf.extractall(path=raw_dir.name)
             input_dir = os.path.join(raw_dir.name, str(epsilon))
-            prepare_ae(input_dir, ref_dir, work_dir.name, f_con)
-            if not _are_images_equivalent_p(input_dir, work_dir.name):
-                print('WARNING: input images did not satisfy constraints!!  They have been clipped accordingly.')
+            prepare_ae(input_dir, ref_dir, def_in_dir.name, f_con)
+            if not _are_images_equivalent_p(input_dir, def_in_dir.name):
+                _warning('input images did not satisfy constraints!!  They have been clipped accordingly.')
 
         # run defense on these images
         # TODO
