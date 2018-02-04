@@ -1,4 +1,3 @@
-
 """ Evaluate AE attacks and defenses.
 
  This script runs all attack submissions vs all defense submission and
@@ -15,6 +14,8 @@ __author__ = "mjp, nf"
 __date__ = 'Feb 2018'
 
 import sys, os, glob
+import tempfile
+from zipfile import ZipFile
 import pdb
 from functools import partial
 from PIL import Image
@@ -79,17 +80,39 @@ def _are_images_equivalent_p(dir_a, dir_b):
 
 
 
+def run_attack_vs_defense(attack_zip, defense_zip, ref_dir, epsilon_values):
+    """ Runs a single attack against a single defense.
+    """
+    raw_dir = tempfile.TemporaryDirectory()
+    work_dir = tempfile.TemporaryDirectory()
+
+    for epsilon in epsilon_values:
+        f_con = partial(enforce_ell_infty_constraint, epsilon=epsilon)
+
+        # unzip and prepare the attack images
+        with ZipFile(attack_zip, 'r') as zf:
+            zf.extractall(path=raw_dir.name)
+            input_dir = os.path.join(raw_dir.name, str(epsilon))
+            prepare_ae(input_dir, ref_dir, work_dir.name, f_con)
+            if not _are_images_equivalent_p(input_dir, work_dir.name):
+                print('WARNING: input images did not satisfy constraints!!  They have been clipped accordingly.')
+
+        # run defense on these images
+        # TODO
+ 
+
+
+
+
 if __name__ == "__main__":
-    #input_dir = sys.argv[1]  # TODO
 
-    ae_dir = './foo'
+    # try out an interaction between attack and defense
+    attack_zip = './fake_attack.zip'
+    defense_zip = './fake_defense.zip'
     ref_dir = './test_images'
-    tgt_dir = '/tmp/foo'
+    epsilon_values_to_run = [10,]
 
-    f_ell_infty = partial(enforce_ell_infty_constraint, epsilon=10)
-
-    prepare_ae(ae_dir, ref_dir, tgt_dir, f_ell_infty)
-    assert(_are_images_equivalent_p(ae_dir, tgt_dir))  # no changes expected
+    run_attack_vs_defense(attack_zip, defense_zip, ref_dir, epsilon_values_to_run)
 
     #try:
     #    prepare_ae('./foo', './test_images', '/tmp/foo', f_con)
