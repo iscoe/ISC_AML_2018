@@ -21,7 +21,6 @@ def main(args):
     
     input_path= args[1]
     output_file = args[2]
-    print(output_file)
     
     yTest = np.load(os.path.join(input_path,'testlabels.npy'))
     file_list = [0] * yTest.shape[0]
@@ -33,6 +32,9 @@ def main(args):
     xTest = prep_test_images(file_list)
     yTest_unsorted = np.load(os.path.join(input_path,'testlabels.npy'))
     preds = model.predict(xTest)
+    #np.save(output_file, preds)
+    #with open(output_file) as json_file:
+    #    json.dump(preds.tolist(), json_file)
     np.save(output_file,preds)
     hits = 0
     for pred, y in zip(preds, yTest):

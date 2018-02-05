@@ -48,7 +48,4 @@ WORKDIR /src
 # I think you only need this for jupyter
 EXPOSE 8888
 
-COPY app /usr/src/app
-WORKDIR /usr/src/app
-
 
