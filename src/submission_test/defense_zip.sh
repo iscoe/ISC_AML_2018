@@ -5,4 +5,5 @@ if [ ! -f cnn_image_only.model ]; then
     rm -f cnn_image_only.model.zip
 fi
 
-tar cvzf simple_defense_submission.tgz cnn_image_only.model data_ml_functions/ metadata.json run_defense.sh defense_zip.sh process.py
+#tar cvzf defense_simple_submission.tgz cnn_image_only.model data_ml_functions/ metadata.json run_defense.sh defense_zip.sh process.py
+zip defense_noop_submission.zip cnn_image_only.model data_ml_functions/ metadata.json run_defense.sh defense_zip.sh process.py
