@@ -111,20 +111,21 @@ def enforce_ell_infty_constraint(x_ae, x_orig, epsilon, clip_min=0, clip_max=255
 
 
 
-def prepare_ae(ae_directory, ref_directory, tgt_directory, f_constraint):
+def prepare_ae(ae_directory, tgt_directory, ref_directory, f_constraint):
     """ Ensures input images satisfy a maximum perturbation constraint.
 
        ae_directory  : Directory containing adversarial images
-       ref_directory : Directory containing clean/original images
        tgt_directory : Directory where verified images should be copied.
+       ref_directory : Directory containing clean/original images
        f_constraint  : A function f(x,y) which ensures image x is close enough to image y.
 
     """
     if not os.path.exists(ae_directory):
         _error('AE directory not found!')
         return
-    
-    for filename in _image_files(ref_directory):
+  
+    cnt = 0
+    for cnt, filename in enumerate(_image_files(ref_directory)):
         path, img_name = os.path.split(filename)
         x_ref = np.array(Image.open(filename), dtype=np.uint8)
 
@@ -136,6 +137,9 @@ def prepare_ae(ae_directory, ref_directory, tgt_directory, f_constraint):
 
         out_file = os.path.join(tgt_directory, img_name)
         Image.fromarray(x_eval, mode='RGB').save(out_file)
+
+    if cnt == 0:
+        _error('no reference files were found!  Is the setup correct?')
 
 
  
@@ -213,12 +217,13 @@ def run_attack_vs_defense(attack_zip, defense_zip, ref_dir, epsilon_values):
         with ZipFile(attack_zip, 'r') as zf:
             zf.extractall(path=raw_dir.name)
             input_dir = os.path.join(raw_dir.name, str(epsilon))
-            prepare_ae(input_dir, ref_dir, def_in_dir.name, f_con)
+            prepare_ae(input_dir, def_in_dir.name, ref_dir, f_con)
             if not _are_images_equivalent_p(input_dir, def_in_dir.name):
                 _warning('input images did not satisfy constraints!!  They have been clipped accordingly.')
 
         # run defense on these images
         # TODO: nvidia-docker run goes here!
+        pdb.set_trace() # TEMP
         _random_guessing_defense(def_in_dir.name, def_out_dir.name)
         file_names, Y_hat = load_estimates(os.path.join(def_out_dir.name, ESTIMATES_FILE))
 
@@ -233,8 +238,8 @@ def run_attack_vs_defense(attack_zip, defense_zip, ref_dir, epsilon_values):
 
 if __name__ == "__main__":
     y_true = 'TODO'  # TODO: implement this.
-    submission_dir = '../misc/simulated_submissions'  # TODO: fix this
-    truth_dir = './test_images' # TODO: fix this
+    submission_dir = '../misc/simulated_environment/submissions'  # TODO: fix this
+    truth_dir = '../misc/simulated_environment/truth'
     epsilon_values_to_run = [10,]
 
 
