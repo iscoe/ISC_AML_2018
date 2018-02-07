@@ -40,14 +40,14 @@ def main(args):
         
     
     # Use the classifier to generate predictions
-    print(" [ INFO ]: Prediction on ", xTest.shape[0], " images")
+    print(" [ INFO ]: Prediction on ", xTest.shape[0], " test images")
     preds = model.predict(xTest)
 
     # Generate and save csv of top 5 classes for each image
     preds_out = []
     for val in preds:
         preds_out.append(np.argsort(val)[::-1][:5])
-        print(np.argmax(val),np.argsort(val)[::-1][:5])
+        
 
     np.savetxt(output_file, preds_out, delimiter=',')
     print(" [ INFO ]: wrote predictions to ", output_file)
