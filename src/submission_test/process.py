@@ -45,7 +45,7 @@ def main(args):
     # Generate and save csv of top 5 classes for each image
     preds_out = []
     for val in preds:
-        preds_out.append(np.argsort(-val.copy())[:5])
+        preds_out.append(np.argsort(int(-val.copy())[:5]))
     np.savetxt(output_file, preds_out, delimiter=',')
     print(" [ INFO ]: wrote predictions to ", output_file)
     
