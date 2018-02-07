@@ -12,7 +12,13 @@ from keras.applications import imagenet_utils
 from keras.utils.np_utils import to_categorical
 from PIL import Image
 from data_ml_functions.mlFunctions import get_cnn_model, img_metadata_generator,get_lstm_model,codes_metadata_generator
- 
+
+
+""" Basic code to run the fMoW baseline classifier on a folder of jpgs, and will write a csv out to the file specified
+[ Params ]:
+    args[1]: The path to the directory of images
+    args[2]: the csv file to write the predictions
+"""
 def main(args):
     model = Sequential()
 
@@ -33,6 +39,7 @@ def main(args):
         
     
     # Use the classifier to generate predictions
+    print(" [ INFO ]: Prediction on ", xTest.shape[0], " images")
     preds = model.predict(xTest)
 
     # Generate and save csv of top 5 classes for each image
@@ -40,7 +47,15 @@ def main(args):
     for val in preds:
         preds_out.append(np.argsort(-val.copy())[:5])
     np.savetxt(output_file, preds_out, delimiter=',')
+    print(" [ INFO ]: wrote predictions to ", output_file)
     
+""" Function to prepare the images from the extracted bounding boxes
+[ Params ]:
+    file_paths: list of all the file paths of the images
+    num_images: number of images to prepare, default 1000
+[ Returns ]:
+    xTest: an np array of the imagenet_mean subtracted data between [0,1]
+""" 
 def prep_test_images(file_paths,num_images=1000):
     xTest = np.zeros((num_images,224,224,3))
     for i in range(xTest.shape[0]):
@@ -52,46 +67,13 @@ def prep_test_images(file_paths,num_images=1000):
     xTest /= 255
     return xTest
 
-def save_test_set(filelist, num_images=1000):
-    save_dir = 'test_images'
-    yTest = np.zeros((num_images, 63))
-    if not os.path.exists(save_dir):
-        os.mkdir(save_dir)
-    
-    for i in range(num_images):
-        img_path = filelist[i]
-        img_PIL = Image.open(img_path)
-        img_PIL.save(os.path.join(save_dir,'testing_'+str(i)+'.jpg'))
-        category = category_map(img_path.split('/')[-2])
-        yTest[i] = to_categorical(category, 63)
-
-    np.save(os.path.join(save_dir,'testlabels.npy'), yTest)
-
-
-def prep_filelist(data_dir='train/'):
-    all_paths = []
-    cache = os.path.join(data_dir, 'cache')
-    if not os.path.exists(cache):
-        os.mkdir(cache)
-    if os.path.exists(os.path.join(cache, 'filepaths.npy')):
-        all_paths = np.load(os.path.join(cache, 'filepaths.npy'))
-    else:
-        folders = os.listdir(data_dir)
-        print(folders)
-        for folder in folders:
-            folder_path = os.path.join(data_dir, folder)
-            if os.path.isdir(folder_path):
-                img_files = os.listdir(folder_path)
-                for img_file in img_files:
-                    if img_file.endswith('.jpg'):
-                        all_paths.append(os.path.join(folder_path, img_file))
-        random.shuffle(all_paths)
-        np.save(os.path.join(cache, 'filepaths.npy'), all_paths)
-    print("[ INFO ]:  Prepped " + str(len(all_paths)) + " image paths")
-    return all_paths
-
+""" Given a category name returns the category ID
+[ Params ]:
+    name: the name of the category
+[ Returns ]:
+    categoryID: the unique ID of the correct decision
+"""
 def category_map(name):
-
     category_names = ['false_detection', 'airport', 'airport_hangar', 'airport_terminal', 'amusement_park', 'aquaculture', 'archaeological_site', 'barn', 'border_checkpoint', 'burial_site', 'car_dealership', 'construction_site', 'crop_field', 'dam', 'debris_or_rubble', 'educational_institution', 'electric_substation', 'factory_or_powerplant', 'fire_station', 'flooded_road', 'fountain', 'gas_station', 'golf_course', 'ground_transportation_station', 'helipad', 'hospital', 'interchange', 'lake_or_pond', 'lighthouse', 'military_facility', 'multi-unit_residential', 'nuclear_powerplant', 'office_building', 'oil_or_gas_facility', 'park', 'parking_lot_or_garage', 'place_of_worship', 'police_station', 'port', 'prison', 'race_track', 'railway_bridge', 'recreational_facility', 'impoverished_settlement', 'road_bridge', 'runway', 'shipyard', 'shopping_mall', 'single-unit_residential', 'smokestack', 'solar_farm', 'space_facility', 'stadium', 'storage_tank','surface_mine', 'swimming_pool', 'toll_booth', 'tower', 'tunnel_opening', 'waste_disposal', 'water_treatment_facility', 'wind_farm', 'zoo']
     return category_names.index(name)
   
