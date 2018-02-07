@@ -20,9 +20,10 @@ from data_ml_functions.mlFunctions import get_cnn_model, img_metadata_generator,
     args[2]: the csv file to write the predictions
 """
 def main(args):
-    model = Sequential()
+    
 
     ### Import and create the basic fMoW baseline model
+    model = Sequential()
     model = load_model('cnn_image_only.model')
     model.compile(loss='categorical_crossentropy', optimizer='SGD',metrics=['accuracy'])
     
@@ -45,7 +46,9 @@ def main(args):
     # Generate and save csv of top 5 classes for each image
     preds_out = []
     for val in preds:
-        preds_out.append(np.argsort(-val.copy())[:5])
+        preds_out.append(np.argsort(val)[::-1][:5])
+        print(np.argmax(val),np.argsort(val)[::-1][:5])
+
     np.savetxt(output_file, preds_out, delimiter=',')
     print(" [ INFO ]: wrote predictions to ", output_file)
     
