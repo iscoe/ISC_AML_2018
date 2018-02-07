@@ -16,31 +16,30 @@ from data_ml_functions.mlFunctions import get_cnn_model, img_metadata_generator,
 def main(args):
     model = Sequential()
 
+    ### Import and create the basic fMoW baseline model
     model = load_model('cnn_image_only.model')
     model.compile(loss='categorical_crossentropy', optimizer='SGD',metrics=['accuracy'])
     
     input_path= args[1]
     output_file = args[2]
     
-    yTest = np.load(os.path.join(input_path,'testlabels.npy'))
-    file_list = [0] * yTest.shape[0]
+    # Load in the images from the specified folder while preserving order
+    file_list = [0] * len(os.listdir(input_path))
     for val in os.listdir(input_path):
         if val.endswith('.jpg'):
             num = int(val.split('_')[-1][:-4])
             file_list[num] = os.path.join(input_path,val)
-        
     xTest = prep_test_images(file_list)
-    yTest_unsorted = np.load(os.path.join(input_path,'testlabels.npy'))
+        
+    
+    # Use the classifier to generate predictions
     preds = model.predict(xTest)
-    #np.save(output_file, preds)
-    #with open(output_file) as json_file:
-    #    json.dump(preds.tolist(), json_file)
-    np.save(output_file,preds)
-    hits = 0
-    for pred, y in zip(preds, yTest):
-        if np.argmax(pred) == np.argmax(y):
-            hits += 1
-    print(float(hits)/yTest.shape[0])
+
+    # Generate and save csv of top 5 classes for each image
+    preds_out = []
+    for val in preds:
+        preds_out.append(np.argsort(-val.copy())[:5])
+    np.savetxt(output_file, preds_out, delimiter=',')
     
 def prep_test_images(file_paths,num_images=1000):
     xTest = np.zeros((num_images,224,224,3))
