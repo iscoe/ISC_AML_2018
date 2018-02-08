@@ -5,20 +5,25 @@ import subprocess
 
 def main():
     # Change this to CLI 
-    submission_name = 'submission_test'
+    defense_names = ['sample_defense_submission']
     base_dir = '/home/neilf/Fendley/adversarial/ISC_AML_2018'
-
-    submission_dir = os.path.join(base_dir, 'src/'+submission_name)
-    data_dir = os.path.join(base_dir, 'test_images/')
-    output_folder = os.path.join(base_dir, 'output/')
     
+    defense_dir = os.path.join(base_dir,'src/defenses')
+    data_dir = os.path.join(base_dir, 'image_sets/test_images')
+    output_dir = os.path.join(base_dir, 'output/')
+    for defense in defense_names:
+      submission_dir = os.path.join(defense_dir, defense)
+      run_defense(submission_dir, data_dir, output_dir)
+
+    
+def run_defense(submission_dir, data_dir, output_dir):
     #Load metadata from their submission
     metadata = json.load(open(os.path.join(submission_dir,'metadata.json')))
-    outputname = '/output/' + submission_name + '_predictions.csv'
+    outputname = '/output/' + os.path.basename(submission_dir) + '_predictions.csv'
     #create nvidia docker command to run
     cmd = ['sudo', 'nvidia-docker', 'run',
            '-v', '{0}:/input_images'.format(data_dir),
-           '-v', '{0}:/output'.format(output_folder),
+           '-v', '{0}:/output'.format(output_dir),
            '-v', '{0}:/code'.format(submission_dir),
            '-w', '/code',
            '--user', 'www-data', metadata['container_gpu'], metadata['entry_point'],

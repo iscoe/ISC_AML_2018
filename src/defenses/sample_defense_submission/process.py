@@ -12,7 +12,6 @@ from keras.applications import imagenet_utils
 from keras.utils.np_utils import to_categorical
 from PIL import Image
 from data_ml_functions.mlFunctions import get_cnn_model, img_metadata_generator,get_lstm_model,codes_metadata_generator
-from cleverhans.utils_keras import KerasModelWrapper
 
 
 """ Basic code to run the fMoW baseline classifier on a folder of jpgs, and will write a csv out to the file specified
