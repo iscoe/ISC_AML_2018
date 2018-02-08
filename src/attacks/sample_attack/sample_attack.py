@@ -15,6 +15,7 @@ from cleverhans.utils_keras import KerasModelWrapper
 from cleverhans.attacks import FastGradientMethod
 def main():
     ### Params of the data are here
+    os.environ['CUDA_VISIBLE_DEVICES'] = '1'
     data_dir = '/home/neilf/Fendley/adversarial/ISC_AML_2018/image_sets/val_prepped'
     adv_fgsm(data_dir)
    
