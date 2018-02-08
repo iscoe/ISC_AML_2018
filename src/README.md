@@ -1,6 +1,6 @@
-#  ISC Adversarial Machine Learning Challenge 2018
+# ISC_AML_2018
 
-
-## Building a Dockerized Defense
+The defenses and attacks provivded are in their respective folders.
+In order to run the attacks against the defenses, call evaluate_submissions.py.
 
 
