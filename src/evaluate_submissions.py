@@ -185,9 +185,8 @@ def load_estimates(csv_file_name):
 
 
 
-def _random_guessing_defense(input_dir, output_dir):
-    """ Randomly guesses image class labels.
-
+def _all_one_defense(input_dir, output_dir):
+    """ 
     This is just for shaking out the API; obviously this is not a suitable defense.
     """
     out_file = os.path.join(output_dir, ESTIMATES_FILE)
@@ -195,8 +194,9 @@ def _random_guessing_defense(input_dir, output_dir):
     with open(out_file, 'w') as f:
         for filename in _image_files(input_dir):
             path, fn = os.path.split(filename)
-            guess = np.arange(N_CLASSES)
-            np.random.shuffle(guess)
+            guess = np.ones((N_CLASSES,), dtype=np.int32)
+            #np.arange(N_CLASSES)
+            #np.random.shuffle(guess)
             line = fn + "," + ",".join([str(x) for x in guess])
             f.write(line + "\n")
 
@@ -235,7 +235,6 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         input_dir = os.path.join(raw_dir.name, str(epsilon))
         prepare_ae(input_dir, def_in_dir.name, ref_dir, f_con)
         if not _are_images_equivalent_p(input_dir, def_in_dir.name):
-            pdb.set_trace() # TEMP
             _warning('input images did not satisfy constraints!!  They have been clipped accordingly.')
         attack_files = [os.path.basename(x) for x in _image_files(def_in_dir.name)]  # list of files created by attacker
 
@@ -243,7 +242,7 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         # run defense on these images
         #----------------------------------------
         # TODO: nvidia-docker run goes here!
-        _random_guessing_defense(def_in_dir.name, def_out_dir.name)
+        _all_one_defense(def_in_dir.name, def_out_dir.name)
         defense_files, Y_hat = load_estimates(os.path.join(def_out_dir.name, ESTIMATES_FILE))
 
         #----------------------------------------
@@ -279,7 +278,8 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         results_attacker.append((ATTACK_TAG, attacker_id, defender_id, epsilon) + tuple(attacker_score))
         results_defender.append((DEFENSE_TAG, attacker_id, defender_id, epsilon) + tuple(defender_score))
 
-    return results_attacker, results_defender
+    cols = ['competition', 'attacker-id', 'defender-id', 'epsilon'] + test_files
+    return pd.DataFrame(results_attacker, columns=cols), pd.DataFrame(results_defender, columns=cols)
 
 
 
@@ -320,7 +320,7 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
             #except Exception as ex:
             #    _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
 
-    return pd.DataFrame(all_attack), pd.DataFrame(all_defense)
+    return pd.concat(all_attack), pd.concat(all_defense)
 
 
 
@@ -344,5 +344,6 @@ if __name__ == "__main__":
         raise RuntimeError('Invalid truth directory: "%s"' % truth_dir)
 
     attacks, defenses = run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values_to_run)
+    pdb.set_trace() # TEMP
     
     compute_metrics(attacks, defenses)
