@@ -2,7 +2,8 @@
 
 ### Defenses
 This is the folder with the challenge team provided defenses.  
-The defenses should contain a metadata.json file of the following form that contains the following information
+The defenses should contain a metadata.json file of the following form that contains the following information  
+
 `{
 	"type": "defense", 
 	"container": "cpu docker container name",   
