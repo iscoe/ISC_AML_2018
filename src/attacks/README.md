@@ -1,6 +1,9 @@
-## ISC_AML_2018
+# ISC_AML_2018
 
-### Attacks
-This is the folder with the challenge team provided attacks. 
+## Attacks
+Sample_attack is a challenge team provided attack that does FGSM on the basic fMoW classifier  
+[fmow_baseline](https://github.com/fMoW/baseline) 
+
+### Note:   
 There is no specied format for the attack code, as attackers must simply submit a zip file of .png's
 
