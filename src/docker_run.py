@@ -36,7 +36,6 @@ def run_defense(defense_dir, offense_dir, output_dir):
     
     subprocess.call(cmd)
 
-
 def main():
     ### Use this to run on the default submissions 
     base_dir = '/home/neilf/Fendley/adversarial/ISC_AML_2018'
