@@ -2,7 +2,6 @@
 import json
 import os
 import subprocess
-
 """
 This function will run the given defenses against provided adversarial attacked image sets. It will write out predictions
 of every defense against each adversarially attacked image set to the specified folder
