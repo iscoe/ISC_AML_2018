@@ -22,15 +22,15 @@ Helper function to run the defenses
 [  Params  ]:
   SEE ABOVE
 """
-def run_defense(submission_dir, offense_dir, output_dir):
+def run_defense(defense_dir, offense_dir, output_dir):
     #Load metadata from their submission
-    metadata = json.load(open(os.path.join(submission_dir,'metadata.json')))
-    outputname = '/output/' + os.path.basename(submission_dir) +'_'+os.path.basename(offense_dir)+ '_predictions.csv'
+    metadata = json.load(open(os.path.join(defense_dir,'metadata.json')))
+    outputname = '/output/' + os.path.basename(os.path.normpath(defense_dir))+'_'+os.path.basename(os.path.normpath(offense_dir)) + '_predictions.csv'
     #create nvidia docker command to run
     cmd = ['sudo', 'nvidia-docker', 'run',
            '-v', '{0}:/input_images'.format(offense_dir),
            '-v', '{0}:/output'.format(output_dir),
-           '-v', '{0}:/code'.format(submission_dir),
+           '-v', '{0}:/code'.format(defense_dir),
            '-w', '/code',
            '--user', 'www-data', metadata['container_gpu'], metadata['entry_point'],
            '/input_images', outputname]
