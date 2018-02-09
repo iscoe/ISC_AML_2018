@@ -3,7 +3,10 @@ import sys
 import redis
 import random
 import os
+
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import json
+
 sys.path.append('./data_ml_functions/DenseNet')
 from keras.models import Model, load_model, Sequential
 import numpy as np
@@ -11,8 +14,6 @@ import tensorflow as tf
 from keras.applications import imagenet_utils
 from keras.utils.np_utils import to_categorical
 from PIL import Image
-from data_ml_functions.mlFunctions import get_cnn_model, img_metadata_generator,get_lstm_model,codes_metadata_generator
-
 
 """ Basic code to run the fMoW baseline classifier on a folder of jpgs, and will write a csv out to the file specified
 [ Params ]:
@@ -20,8 +21,6 @@ from data_ml_functions.mlFunctions import get_cnn_model, img_metadata_generator,
     args[2]: the csv file to write the predictions
 """
 def main(args):
-    
-
     ### Import and create the basic fMoW baseline model
     model = Sequential()
     model = load_model('cnn_image_only.model')
