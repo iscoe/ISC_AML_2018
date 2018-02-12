@@ -1,5 +1,5 @@
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import json
 import numpy as np
 from PIL import Image
@@ -17,8 +17,8 @@ from cleverhans.attacks import FastGradientMethod
 
 def main():
     ### Params of the data are here
-    data_dir = '/home/neilf/Fendley/adversarial/ISC_AML_2018/image_sets/val_prepped'
-    adv_fgsm(data_dir)
+    data_dir = params.directories['dataset']
+    adv_fgsm(data_dir, num_adv=3000)
    
 
 """
@@ -52,6 +52,8 @@ def adv_fgsm(data_dir,num_adv='max'):
     save_folder = 'adv_out/'
     if not os.path.exists(save_folder):
         os.mkdir(save_folder)
+    np.savetxt(os.path.join(save_folder,labels.csv), yTest,delimitier=',')
+        
     for ep in eps:
         fgsm_params = {'eps': ep}
         adv_x = fgsm.generate(x, **fgsm_params)
@@ -76,11 +78,12 @@ def adv_fgsm(data_dir,num_adv='max'):
                 hits += 1
             counter += 1
         
-        print(img_adv_out.shape)
+        save_folder_eps = os.path.join(save_folder, str(ep))
+        if not os.path.exists(save_folder_eps):
+            os.mkdir(save_folder_eps)
         for i in range(img_adv_out.shape[0]):
             img_PIL = Image.fromarray(img_adv_out[i])
-            img_PIL.save(os.path.join(save_folder,"adv_img_"+str(ep)+
-                "_"+str(i)+".png"))
+            img_PIL.save(os.path.join(save_folder_eps,"adv_img_"+str(i)+".png"))
         print("[  Info  ]: The accuracy on eps " + str(ep) + ': ' +str(float(hits)/counter))
 
 """
@@ -130,7 +133,7 @@ def prep_adv_set(model, filepaths, num_adv=1000):
             img_path = filepaths[i]
             i += 1
             img_pil = Image.open(img_path)
-            x_test = np.asarray(img_pil).astype(np.float32)
+            x_test = np.expand_dims(np.asarray(img_pil).astype(np.float32),axis =0)
             category = img_path.split('/')[-2]
             x_test = imagenet_utils.preprocess_input(x_test)
             x_test = x_test / 255.0
