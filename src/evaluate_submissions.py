@@ -13,7 +13,7 @@
      i.e. tensorflow ordering.
 
    o We anticipate running this framework on a linux machine 
-     with tensorflow and Python 3 (via anaconda) if you are 
+     with tensorflow+keras and Anaconda Python 3 if one is
      interested in replicating this environment locally. 
      We attempt to provide comments where this assumption
      is being made.
@@ -229,6 +229,14 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         def_in_dir = tempfile.TemporaryDirectory()       # images ready for defense live here
         def_out_dir = tempfile.TemporaryDirectory()      # output from defense goes here
 
+
+        # (as per discussion on 2/13)
+        # TODO: As a first step, copy the clean images into the evaluation directory.
+        #       Then, overwrite with adversarial images.  This has the benefit of
+        #       avoiding situations where the attacker provides only a subset of
+        #       the required images.  In these cases, the defender is presented
+        #       with the clean image rather than nothing.
+
         #----------------------------------------
         # prepare the attack images for this value of epsilon
         #----------------------------------------
@@ -344,6 +352,9 @@ if __name__ == "__main__":
         raise RuntimeError('Invalid truth directory: "%s"' % truth_dir)
 
     attacks, defenses = run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values_to_run)
+
+    print(attacks) # TEMP
+    print(defenses) # TEMP
     pdb.set_trace() # TEMP
     
     compute_metrics(attacks, defenses)
