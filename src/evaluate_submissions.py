@@ -32,6 +32,8 @@ from zipfile import ZipFile
 import pdb
 from functools import partial
 from PIL import Image
+import json
+import subprocess
 
 import numpy as np
 import pandas as pd
@@ -78,8 +80,8 @@ def _get_submission(team_dir, submission_type='attack'):
     """
     submissions = []
     for extension in ["*.zip"]:  # for now, only zip (no tar/tgz)
-        pattern = submission_type + extension
-        submissions.extend(glob.glob(os.path.join(team_dir, pattern)))
+        sub_dir = os.path.join(team_dir, submission_type)
+        submissions.extend(glob.glob(os.path.join(sub_dir, extension)))
 
     if len(submissions) == 0:
         _info('No submission type "%s" in directory "%s"' % (submission_type, team_dir))
@@ -125,7 +127,18 @@ def prepare_ae(ae_directory, tgt_directory, ref_directory, f_constraint):
     if not os.path.exists(ae_directory):
         _warning('AE directory "%s" not found - did attack not address this epsilon?' % ae_directory)
         return
-  
+
+    ### In case attacker did not submit all the files
+    for filename in _image_files(ref_directory):
+        path, img_name = os.path.split(filename)
+        ref_file = os.path.join(ref_directory, img_name)
+        x_ref = np.array(Image.open(ref_file))
+        if not os.path.exists(ref_file):
+            _warning('no such reference file "%s"; ignoring this image' % ref_file)
+            continue
+        out_file = os.path.join(tgt_directory, img_name)
+        Image.fromarray(x_ref, mode='RGB').save(out_file)
+
     for filename in _image_files(ae_directory):
         path, img_name = os.path.split(filename)
         x_ae = np.array(Image.open(filename), dtype=np.uint8)
@@ -217,17 +230,22 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
     assert(y_true.size == n_test)  # truth file should have only one label
 
     # Extract attack submission (only need to do this once - contains all epsilon) 
-    raw_dir = tempfile.TemporaryDirectory()          # we unzip attacker's images here
+    raw_dir = tempfile.mkdtemp()          # we unzip attacker's images here
     with ZipFile(attack_zip, 'r') as zf:
-        zf.extractall(path=raw_dir.name)
+        zf.extractall(path=raw_dir)
+
+    def_dir = tempfile.mkdtemp()
+    with ZipFile(defense_zip, 'r') as zf:
+        zf.extractall(path=def_dir)
+
 
     results_attacker = []
     results_defender = []
     
     for epsilon in epsilon_values:
         f_con = partial(enforce_ell_infty_constraint, epsilon=epsilon) # enforces constraint
-        def_in_dir = tempfile.TemporaryDirectory()       # images ready for defense live here
-        def_out_dir = tempfile.TemporaryDirectory()      # output from defense goes here
+        def_in_dir = tempfile.mkdtemp()       # images ready for defense live here
+        def_out_dir = tempfile.mkdtemp()      # output from defense goes here
 
 
         # (as per discussion on 2/13)
@@ -240,18 +258,19 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         #----------------------------------------
         # prepare the attack images for this value of epsilon
         #----------------------------------------
-        input_dir = os.path.join(raw_dir.name, str(epsilon))
-        prepare_ae(input_dir, def_in_dir.name, ref_dir, f_con)
-        if not _are_images_equivalent_p(input_dir, def_in_dir.name):
+        input_dir = os.path.join(raw_dir, str(epsilon))
+        prepare_ae(input_dir, def_in_dir, ref_dir, f_con)
+        if not _are_images_equivalent_p(input_dir, def_in_dir):
             _warning('input images did not satisfy constraints!!  They have been clipped accordingly.')
-        attack_files = [os.path.basename(x) for x in _image_files(def_in_dir.name)]  # list of files created by attacker
+        attack_files = [os.path.basename(x) for x in _image_files(def_in_dir)]  # list of files created by attacker
 
         #----------------------------------------
         # run defense on these images
         #----------------------------------------
         # TODO: nvidia-docker run goes here!
-        _all_one_defense(def_in_dir.name, def_out_dir.name)
-        defense_files, Y_hat = load_estimates(os.path.join(def_out_dir.name, ESTIMATES_FILE))
+        #_all_one_defense(def_in_dir, def_out_dir)
+        run_defense(def_dir, def_in_dir,def_out_dir)
+        defense_files, Y_hat = load_estimates(os.path.join(ref_dir, ESTIMATES_FILE))
 
         #----------------------------------------
         # evaluate performance
@@ -330,7 +349,20 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
 
     return pd.concat(all_attack), pd.concat(all_defense)
 
-
+def run_defense(defense_dir, offense_dir, output_dir):
+    #Load metadata from their submission
+    metadata = json.load(open(os.path.join(defense_dir,'metadata.json')))
+    outputname = '/output/predictions.csv'
+    #create nvidia docker command to run
+    cmd = ['sudo', 'nvidia-docker', 'run',
+           '-v', '{0}:/input_images'.format(offense_dir),
+           '-v', '{0}:/output'.format(output_dir),
+           '-v', '{0}:/code'.format(defense_dir),
+           '-w', '/code',
+           '--user', 'www-data', metadata['container_gpu'], metadata['entry_point'],
+           '/input_images', outputname]
+    
+    subprocess.call(cmd)
 
 def compute_metrics(all_attacks, all_defenses):
     # TODO: save out some .csv files
@@ -343,7 +375,7 @@ def compute_metrics(all_attacks, all_defenses):
 if __name__ == "__main__":
     submission_dir = sys.argv[1]
     truth_dir = sys.argv[2]
-    epsilon_values_to_run = [int(x) for x in sys.argv[3:]]
+    epsilon_values_to_run = [float(x) for x in sys.argv[3:]]
 
     if not os.path.isdir(submission_dir):
         raise RuntimeError('Invalid submission directory: "%s"' % submission_dir)
@@ -355,6 +387,9 @@ if __name__ == "__main__":
 
     print(attacks) # TEMP
     print(defenses) # TEMP
-    pdb.set_trace() # TEMP
+    #pdb.set_trace() # TEMP
     
     compute_metrics(attacks, defenses)
+
+
+

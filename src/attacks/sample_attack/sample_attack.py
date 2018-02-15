@@ -18,7 +18,7 @@ from cleverhans.attacks import FastGradientMethod
 def main():
     ### Params of the data are here
     data_dir = params.directories['dataset']
-    adv_fgsm(data_dir, num_adv=3000)
+    adv_fgsm(data_dir, num_adv=10)
    
 
 """
@@ -40,7 +40,7 @@ def adv_fgsm(data_dir,num_adv='max'):
     ### This is ineffiecient, will speed up 
     img_paths = prep_filelist(data_dir)
     xTest, yTest = prep_adv_set(model,img_paths,num_adv=num_adv)
-
+    labels_all = []
     x = tf.placeholder(tf.float32, shape=(None, 224, 224, 3))
     y = tf.placeholder(tf.float32, shape=(None, 63))
 
@@ -52,7 +52,6 @@ def adv_fgsm(data_dir,num_adv='max'):
     save_folder = 'adv_out/'
     if not os.path.exists(save_folder):
         os.mkdir(save_folder)
-    np.savetxt(os.path.join(save_folder,labels.csv), yTest,delimitier=',')
         
     for ep in eps:
         fgsm_params = {'eps': ep}
@@ -84,8 +83,12 @@ def adv_fgsm(data_dir,num_adv='max'):
         for i in range(img_adv_out.shape[0]):
             img_PIL = Image.fromarray(img_adv_out[i])
             img_PIL.save(os.path.join(save_folder_eps,"adv_img_"+str(i)+".png"))
+            if ep == 0:
+                labels_all.append(["adv_img_"+str(i)+".png",str(np.argmax(yTest[i]))])
         print("[  Info  ]: The accuracy on eps " + str(ep) + ': ' +str(float(hits)/counter))
-
+    labels_np = np.asarray(labels_all)
+    np.savetxt(os.path.join(save_folder,'labels.csv'), labels_np, fmt='%s', delimiter=',')
+      
 """
 This will return a list of all the paths to the png files
 [  Params  ]:
@@ -125,7 +128,7 @@ def prep_adv_set(model, filepaths, num_adv=1000):
     x_test_final = np.zeros((0,224,224,3))
     y_test_final = np.zeros((0,63))
     print("[  INFO  ]:  We are loading correctly detected images")
-    batch_size = 512
+    batch_size = num_adv / 10
     while x_test_final.shape[0] < num_adv:
         x_batch = np.zeros((batch_size,224,224,3))
         y_batch = np.zeros((batch_size,63))
@@ -148,9 +151,10 @@ def prep_adv_set(model, filepaths, num_adv=1000):
                 y_test_final = np.concatenate((y_test_final, np.expand_dims(y_batch[idx],axis=0)), axis = 0)
 
         print ("[  STATUS  ]:  On image " + str(i) + ', ' + str(x_test_final.shape[0]) + " good images loaded")
-
+    x_test_final = x_test_final[:num_adv]
+    y_test_final = y_test_final[:num_adv]
     print ("[  Info   ]: Finished loading good clean examples, found ", x_test_final.shape[0], "correct detections in ", i, "images")
-    return xTest, yTest
+    return x_test_final, y_test_final
 
 
 
