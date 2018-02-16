@@ -18,7 +18,7 @@ from cleverhans.attacks import FastGradientMethod
 def main():
     ### Params of the data are here
     data_dir = params.directories['dataset']
-    adv_fgsm(data_dir, num_adv=10)
+    adv_fgsm(data_dir, num_adv=1000)
    
 
 """

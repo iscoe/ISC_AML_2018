@@ -32,7 +32,7 @@ def main(args):
     # Load in the images from the specified folder while preserving order
     file_list = [0] * len(os.listdir(input_path))
     for val in os.listdir(input_path):
-        if val.endswith('.jpg'):
+        if val.endswith('.png'):
             num = int(val.split('_')[-1][:-4])
             file_list[num] = os.path.join(input_path,val)
     xTest = prep_test_images(file_list)
@@ -44,11 +44,11 @@ def main(args):
 
     # Generate and save csv of top 5 classes for each image
     preds_out = []
-    for val in preds:
-        preds_out.append(np.argsort(val)[::-1][:5])
+    for i in range(preds.shape[0]):
+        preds_out.append([os.path.basename(file_list[i]),str(np.argsort(val)[::-1][:5])])
         
 
-    np.savetxt(output_file, preds_out, delimiter=',')
+    np.savetxt(output_file, preds_out, fmt='%s', delimiter=',')
     print(" [ INFO ]: wrote predictions to ", output_file)
     
 """ Function to prepare the images from the extracted bounding boxes

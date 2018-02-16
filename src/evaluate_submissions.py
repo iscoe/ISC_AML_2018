@@ -30,6 +30,9 @@ import glob
 import tempfile
 from zipfile import ZipFile
 import pdb
+import pwd
+import grp
+from stat import S_IRUSR,S_IWUSR,S_IRGRP,S_IWGRP,S_IROTH,S_IWOTH
 from functools import partial
 from PIL import Image
 import json
@@ -129,15 +132,15 @@ def prepare_ae(ae_directory, tgt_directory, ref_directory, f_constraint):
         return
 
     ### In case attacker did not submit all the files
-    for filename in _image_files(ref_directory):
-        path, img_name = os.path.split(filename)
-        ref_file = os.path.join(ref_directory, img_name)
-        x_ref = np.array(Image.open(ref_file))
-        if not os.path.exists(ref_file):
-            _warning('no such reference file "%s"; ignoring this image' % ref_file)
-            continue
-        out_file = os.path.join(tgt_directory, img_name)
-        Image.fromarray(x_ref, mode='RGB').save(out_file)
+    # for filename in _image_files(ref_directory):
+    #     path, img_name = os.path.split(filename)
+    #     ref_file = os.path.join(ref_directory, img_name)
+    #     x_ref = np.array(Image.open(ref_file))
+    #     if not os.path.exists(ref_file):
+    #         _warning('no such reference file "%s"; ignoring this image' % ref_file)
+    #         continue
+    #     out_file = os.path.join(tgt_directory, img_name)
+    #     Image.fromarray(x_ref, mode='RGB').save(out_file)
 
     for filename in _image_files(ae_directory):
         path, img_name = os.path.split(filename)
@@ -213,7 +216,7 @@ def _all_one_defense(input_dir, output_dir):
             line = fn + "," + ",".join([str(x) for x in guess])
             f.write(line + "\n")
 
-
+    #os.chown( out_path, uid,gid)
 #-------------------------------------------------------------------------------
 #  Evauation (attack vs defense)
 #-------------------------------------------------------------------------------
@@ -269,7 +272,7 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         #----------------------------------------
         # TODO: nvidia-docker run goes here!
         #_all_one_defense(def_in_dir, def_out_dir)
-        run_defense(def_dir, def_in_dir,def_out_dir)
+        run_defense(def_dir, def_in_dir, def_out_dir)
         defense_files, Y_hat = load_estimates(os.path.join(ref_dir, ESTIMATES_FILE))
 
         #----------------------------------------
@@ -280,17 +283,6 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
 
         for ii in range(len(test_files)):
             fn, y_i= test_files[ii], y_true[ii]
-
-            # Special cases: attacker/defender does not produce/evaluate an example
-            #                Do not penalize the other party in this case (use NaN)
-            if fn not in attack_files:
-                attacker_score[ii] = 0
-                defender_score[ii] = np.nan
-                continue
-            elif fn not in defense_files:
-                attacker_score[ii] = np.nan
-                defender_score[ii] = 0
-                continue
 
             # top-1 accuracy
             idx = defense_files.index(fn)
@@ -353,6 +345,37 @@ def run_defense(defense_dir, offense_dir, output_dir):
     #Load metadata from their submission
     metadata = json.load(open(os.path.join(defense_dir,'metadata.json')))
     outputname = '/output/predictions.csv'
+    
+
+    cmd = ['sudo', 'chown','1005:1005',defense_dir]
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chmod','775',defense_dir]
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chown','1005:1005',offense_dir]
+    
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chmod','775',offense_dir]
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chown','33:33',output_dir]
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chmod','775',output_dir]
+    subprocess.call(cmd)
+
+
+    for file in os.listdir(defense_dir):
+        if file.endswith('.sh'):
+            cmd = ['sudo', 'chmod','+x',os.path.join(defense_dir, file)]
+            subprocess.call(cmd)
+        
+        # cmd = ['sudo', 'chown','1005:1005',os.path.join(defense_dir, file)]
+        # subprocess.call(cmd)
+        # cmd = ['sudo', 'chmod','775',os.path.join(defense_dir, file)]
+        # subprocess.call(cmd)
+
+
+    # cmd = ['sudo', 'chown','www-data:www-data',os.path.join(defense_dir, file)]
+    # subprocess.call(cmd)
+    
     #create nvidia docker command to run
     cmd = ['sudo', 'nvidia-docker', 'run',
            '-v', '{0}:/input_images'.format(offense_dir),
