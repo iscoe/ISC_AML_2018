@@ -44,9 +44,8 @@ import pandas as pd
 import pdb
 
 
-N_CLASSES = 70  # TODO: fix this!
-ESTIMATES_FILE = 'labels.csv'
-COMPETITION_UNTARGETED = "untargeted"
+ESTIMATES_FILE = 'labels.csv'            # name of file containing ground truth within test images directory
+COMPETITION_UNTARGETED = "untargeted"    # tag identifying this particular competition
 
 
 
@@ -202,25 +201,6 @@ def load_estimates(csv_file_name):
 
 
 
-def _all_one_defense(input_dir, output_dir):
-    """ 
-    This is just for shaking out the API; obviously this is not a suitable defense.
-    """
-    out_file = os.path.join(output_dir, ESTIMATES_FILE)
-    
-    with open(out_file, 'w') as f:
-        for filename in _image_files(input_dir):
-            path, fn = os.path.split(filename)
-            guess = np.ones((N_CLASSES,), dtype=np.int32)
-            #np.arange(N_CLASSES)
-            #np.random.shuffle(guess)
-            line = fn + "," + ",".join([str(x) for x in guess])
-            f.write(line + "\n")
-
-    #os.chown( out_path, uid,gid)
-
-
-
 def run_defense(defense_dir, offense_dir, output_dir):
     """ Executes a defense on a collection of images.
     """
@@ -367,11 +347,11 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
             #----------------------------------------
             # run attack vs defense and store result
             #----------------------------------------
-            #try:
-            result_this_pair = run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_zip, truth_dir, epsilon_values)
-            all_results.append(result_this_pair)
-            #except Exception as ex:
-            #    _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
+            try:
+                result_this_pair = run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_zip, truth_dir, epsilon_values)
+                all_results.append(result_this_pair)
+            except Exception as ex:
+                _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
 
     return pd.concat(all_results)
 
@@ -398,21 +378,20 @@ def compute_metrics(results, out_dir):
     #----------------------------------------
     results_def = results.reset_index().groupby("defender-id").mean()
     results_def = results_def.drop(['epsilon', 'index'], axis=1)
-    results_def.to_csv(os.path.join(out_dir_defense, 'details.csv'), header=True)
 
     results_att = -results.reset_index().groupby("attacker-id").mean()
     results_att = results_att.drop(['epsilon', 'index'], axis=1)
+
+    results_def.to_csv(os.path.join(out_dir_defense, 'details.csv'), header=True)
     results_att.to_csv(os.path.join(out_dir_attack, 'details.csv'), header=True)
 
     #----------------------------------------
     # compute net performance (avg. across all test images)
     #----------------------------------------
-    # TODO: add header!!
     results_def_agg = results_def.mean(axis=1)
-    results_def_agg.to_csv(os.path.join(out_dir_defense, "scores.csv"), header=True)
-    pdb.set_trace() # TEMP
-
     results_att_agg = results_att.mean(axis=1)
+
+    results_def_agg.to_csv(os.path.join(out_dir_defense, "scores.csv"), header=True)
     results_att_agg.to_csv(os.path.join(out_dir_attack, "scores.csv"), header=True)
 
 
@@ -429,7 +408,7 @@ if __name__ == "__main__":
 
     if not os.path.isdir(submission_dir):
         raise RuntimeError('Invalid submission directory: "%s"' % submission_dir)
-    
+ 
     if not os.path.isdir(truth_dir):
         raise RuntimeError('Invalid truth directory: "%s"' % truth_dir)
 
