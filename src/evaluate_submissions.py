@@ -347,11 +347,11 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
             #----------------------------------------
             # run attack vs defense and store result
             #----------------------------------------
-            #try:
-            result_this_pair = run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_zip, truth_dir, epsilon_values)
-            all_results.append(result_this_pair)
-            #except Exception as ex:
-            #    _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
+            try:
+                result_this_pair = run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_zip, truth_dir, epsilon_values)
+                all_results.append(result_this_pair)
+            except Exception as ex:
+                _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
 
     return pd.concat(all_results)
 
@@ -408,7 +408,7 @@ if __name__ == "__main__":
 
     if not os.path.isdir(submission_dir):
         raise RuntimeError('Invalid submission directory: "%s"' % submission_dir)
-    
+ 
     if not os.path.isdir(truth_dir):
         raise RuntimeError('Invalid truth directory: "%s"' % truth_dir)
 
