@@ -21,16 +21,18 @@ def main(args):
     output_dir = args[2]
     eps = args[3:]
     num_adv = 1000
-
-
+    
     model = Sequential()
     model = load_model('cnn_image_only.model')
     model.compile(loss='categorical_crossentropy', optimizer='SGD',metrics=['accuracy'])
 
-    img_paths = prep_filelist(data_dir)
-    x_input, y_input, names = prep_adv_set(model,img_paths,num_adv=num_adv)
-    adv_fgsm(data_dir, output_dir, model,names, x_input, y_input=y_input,eps=eps)
-   
+    # img_paths = prep_filelist(data_dir)
+    # x_input, y_input, names = prep_adv_set(model,img_paths,num_adv=num_adv)
+    # adv_fgsm(data_dir, output_dir, model, names, x_input, y_input=y_input,eps=eps)
+
+    x_input, names = load_images(data_dir)
+    adv_fgsm(data_dir, output_dir, model, names, x_input, eps=eps)
+    
 
 """ Given a category name returns the category ID
 [ Params ]:
@@ -42,20 +44,48 @@ def category_map(name):
     category_names = ['false_detection', 'airport', 'airport_hangar', 'airport_terminal', 'amusement_park', 'aquaculture', 'archaeological_site', 'barn', 'border_checkpoint', 'burial_site', 'car_dealership', 'construction_site', 'crop_field', 'dam', 'debris_or_rubble', 'educational_institution', 'electric_substation', 'factory_or_powerplant', 'fire_station', 'flooded_road', 'fountain', 'gas_station', 'golf_course', 'ground_transportation_station', 'helipad', 'hospital', 'interchange', 'lake_or_pond', 'lighthouse', 'military_facility', 'multi-unit_residential', 'nuclear_powerplant', 'office_building', 'oil_or_gas_facility', 'park', 'parking_lot_or_garage', 'place_of_worship', 'police_station', 'port', 'prison', 'race_track', 'railway_bridge', 'recreational_facility', 'impoverished_settlement', 'road_bridge', 'runway', 'shipyard', 'shopping_mall', 'single-unit_residential', 'smokestack', 'solar_farm', 'space_facility', 'stadium', 'storage_tank','surface_mine', 'swimming_pool', 'toll_booth', 'tower', 'tunnel_opening', 'waste_disposal', 'water_treatment_facility', 'wind_farm', 'zoo']
     return category_names.index(name)
   
+def load_images(data_dir):
+
+    """
+    Loads images from a challenge directory
+    """
+    images=os.listdir(data_dir)
+    img_list = []
+    filenames = []
+    for img in images:
+        if img.endswith('.png'):
+            img_path = os.path.join(data_dir, img)
+            img_pil = Image.open(img_path)
+            x_input = np.asarray(img_pil).astype(np.float32)
+            x_test = imagenet_preprocessing(x_input)
+            img_list.append(x_test)
+            filenames.append(img)
+
+    return np.asarray(img_list), filenames
 
 
-def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[0.01],):
+
+def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[0.01]):
     """ Attacks the fmow baseline model with an FGSM attack from cleverhans
 
     data_dir: directory with the image files
     eps: a list of perturbation constraints
     """
-
+  
     sess = tf.Session()
-    K.set_learning_phase(0)
     K.set_session(sess)
+    K.set_learning_phase(0)
+   
+
     sess.run(tf.global_variables_initializer())
-    
+
+
+    model = Sequential()
+    model = load_model('cnn_image_only.model')
+    model.compile(loss='categorical_crossentropy', optimizer='SGD',metrics=['accuracy'])
+
+    #model.compile(loss='categorical_crossentropy', optimizer='SGD',metrics=['accuracy'])
+
     labels_all = []
     x = tf.placeholder(tf.float32, shape=(None, 224, 224, 3))
     y = tf.placeholder(tf.float32, shape=(None, 63))
@@ -68,19 +98,17 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
         os.mkdir(save_folder)
         
     for ep in eps:
-        fgsm_params = {'eps': float(ep)/255}
+        fgsm_params = {'eps': float(ep)/255.0}
         adv_x = fgsm.generate(x, **fgsm_params)
         img_adv_out = np.zeros((0,224,224,3),dtype=np.uint8)
         eval_par = {'batch_size': 32}
         counter = 0
         hits = 0
 
-        for i in range(len(xTest)):
-            img_clean = np.expand_dims(xTest[i], axis=0)
-            if ep == 0:
-                img = img_clean
-            else:
-                img = adv_x.eval(session=sess, feed_dict={x:img_clean})
+        for i in range(len(x_input)):
+            img_clean = np.expand_dims(x_input[i], axis=0)
+            img = adv_x.eval(session=sess, feed_dict={x:img_clean})
+            
             if y_input != None:
                 cat = y_input[i]
                 cat_input = np.expand_dims(cat, axis=0)
@@ -99,16 +127,17 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
             os.mkdir(save_folder_eps)
         for i in range(img_adv_out.shape[0]):
             img_PIL = Image.fromarray(img_adv_out[i])
-            img_PIL.save(os.path.join(save_folder_eps,filenames[i])+".png")
+            img_PIL.save(os.path.join(save_folder_eps,filenames[i]))
             if ep == 0 and y_input != None:
                 labels_all.append([filenames[i]+".png",str(np.argmax(y_input[i]))])
-
-        print("[  Info  ]: The accuracy on eps " + str(ep) + ': ' +str(float(hits)/counter))
-
-    if y_input != None: 
-        labels_np = np.asarray(labels_all)
-        np.savetxt(os.path.join(save_folder,'labels.csv'), labels_np, fmt='%s', delimiter=',')
+        if y_input != None:
+            print("[  Info  ]: The accuracy on eps " + str(ep) + ': ' +str(float(hits)/counter))
+            if ep == 0:
+                print("Saving out labels")
+                labels_np = np.asarray(labels_all)
+                np.savetxt(os.path.join(save_folder,'labels.csv'), labels_np, fmt='%s', delimiter=',')
       
+        
 
 def prep_filelist(data_dir):
     """ Returns a list of all the filepaths of the png files
@@ -178,7 +207,7 @@ def prepare_image_output(image):
     return img.astype(np.uint8)
 
 
-def prep_adv_set(model, filepaths, num_adv=1000):
+def prep_adv_set(model, filepaths, num_adv=1000, batch_size=256):
     """ Loads and returns images with their predictions that are correctly predicted by the provided model
 
     model: a keras model to evaluate images on
@@ -194,10 +223,10 @@ def prep_adv_set(model, filepaths, num_adv=1000):
     names_final = []
     
     print("[  INFO  ]:  We are loading correctly detected images")
-    batch_size = num_adv / 10
     while x_test_final.shape[0] < num_adv:
-        if len(filepaths) - i < batch_size:
-            batch_size = len(filepaths) - i
+        if (len(filepaths) - i) < batch_size:
+            batch_size = int(len(filepaths) - i)
+            print(batch_size)
         x_batch = np.zeros((batch_size,224,224,3))
         y_batch = np.zeros((batch_size,63))
         names_batch = []
