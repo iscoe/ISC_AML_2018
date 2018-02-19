@@ -44,9 +44,8 @@ import pandas as pd
 import pdb
 
 
-N_CLASSES = 70  # TODO: fix this!
-ESTIMATES_FILE = 'labels.csv'
-COMPETITION_UNTARGETED = "untargeted"
+ESTIMATES_FILE = 'labels.csv'            # name of file containing ground truth within test images directory
+COMPETITION_UNTARGETED = "untargeted"    # tag identifying this particular competition
 
 
 
@@ -199,25 +198,6 @@ def load_estimates(csv_file_name):
             estimates.append(np.array(labels, dtype=np.int32))
 
     return file_names, np.array(estimates)
-
-
-
-def _all_one_defense(input_dir, output_dir):
-    """ 
-    This is just for shaking out the API; obviously this is not a suitable defense.
-    """
-    out_file = os.path.join(output_dir, ESTIMATES_FILE)
-    
-    with open(out_file, 'w') as f:
-        for filename in _image_files(input_dir):
-            path, fn = os.path.split(filename)
-            guess = np.ones((N_CLASSES,), dtype=np.int32)
-            #np.arange(N_CLASSES)
-            #np.random.shuffle(guess)
-            line = fn + "," + ",".join([str(x) for x in guess])
-            f.write(line + "\n")
-
-    #os.chown( out_path, uid,gid)
 
 
 
