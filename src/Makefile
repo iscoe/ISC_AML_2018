@@ -36,4 +36,4 @@ baseline-defense :
 
 
 eval :
-	python evaluate_submissions.py $(SUBMISSION_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) .005 .01
+	python evaluate_submissions.py $(SUBMISSION_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 10 20 50
