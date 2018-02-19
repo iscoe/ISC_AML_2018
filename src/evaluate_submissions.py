@@ -378,21 +378,20 @@ def compute_metrics(results, out_dir):
     #----------------------------------------
     results_def = results.reset_index().groupby("defender-id").mean()
     results_def = results_def.drop(['epsilon', 'index'], axis=1)
-    results_def.to_csv(os.path.join(out_dir_defense, 'details.csv'), header=True)
 
     results_att = -results.reset_index().groupby("attacker-id").mean()
     results_att = results_att.drop(['epsilon', 'index'], axis=1)
+
+    results_def.to_csv(os.path.join(out_dir_defense, 'details.csv'), header=True)
     results_att.to_csv(os.path.join(out_dir_attack, 'details.csv'), header=True)
 
     #----------------------------------------
     # compute net performance (avg. across all test images)
     #----------------------------------------
-    # TODO: add header!!
     results_def_agg = results_def.mean(axis=1)
-    results_def_agg.to_csv(os.path.join(out_dir_defense, "scores.csv"), header=True)
-    pdb.set_trace() # TEMP
-
     results_att_agg = results_att.mean(axis=1)
+
+    results_def_agg.to_csv(os.path.join(out_dir_defense, "scores.csv"), header=True)
     results_att_agg.to_csv(os.path.join(out_dir_attack, "scores.csv"), header=True)
 
 
