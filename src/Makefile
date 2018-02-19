@@ -23,17 +23,21 @@ default :
 # Note: the mkdir calls here are to help out evaluation; if you are a 
 #       performer/participant in competition, you can ignore this.
 baseline-attack:
-	mkdir -p $(SUBMISSION_DIR)/team_a/attack
-	mkdir -p $(SUBMISSION_DIR)/team_a/defense
 	echo "TODO: run attack on 1000 images!"
+	# Generate zip for attack images
 
 
 baseline-defense :
+	cd ./defenses/sample_defense_submission/ && ./defense_zip.sh 
+	
+
+dummy-framework:
 	mkdir -p $(SUBMISSION_DIR)/team_b/attack
 	mkdir -p $(SUBMISSION_DIR)/team_b/defense
-	cd ./defenses/sample_defense_submission/ && ./defense_zip.sh 
-	mv ./defenses/sample_defense_submission/defense_noop_submission.zip $(SUBMISSION_DIR)/team_b/defense
-
+	mkdir -p $(SUBMISSION_DIR)/team_a/attack
+	mkdir -p $(SUBMISSION_DIR)/team_a/defense
+	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(SUBMISSION_DIR)/team_b/defense
+	
 
 eval :
-	python evaluate_submissions.py $(SUBMISSION_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 10 20 50
+	python evaluate_submissions.py $(SUBMISSION_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) .005 .01
