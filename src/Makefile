@@ -1,17 +1,27 @@
+#-------------------------------------------------------------------------------
+# This file serves as an example to show how one might use the example code.
+# Of primary interest are:
+#
+#   baseline-attack   : Demonstrates how to generate AE using CleverHans (CH)
+#   baseline-defense  : Demonstrates how one might attempt to classify images.
+#   eval              : Demonstrates evaluation framework.
+#
+# Feb, 2018
+#-------------------------------------------------------------------------------
 
-
+# Directories needed for evaluation
 SUBMISSION_DIR=../misc/simulated_environment/submissions
-TRUTH_DIR=../misc/simulated_environment/truth
+GROUND_TRUTH_DIR=../misc/simulated_environment/truth
+OUTPUT_DIR=./
 
-
+#-------------------------------------------------------------------------------
 
 default :
 	echo "Please pick an explicit target!"
 
 
-# Construct a simulated set of submissions.
-# This is just for testing/demonstration purposes.
-# 
+# Note: the mkdir calls here are to help out evaluation; if you are a 
+#       performer/participant in competition, you can ignore this.
 baseline-attack:
 	mkdir -p $(SUBMISSION_DIR)/team_a/attack
 	mkdir -p $(SUBMISSION_DIR)/team_a/defense
@@ -26,4 +36,4 @@ baseline-defense :
 
 
 eval :
-	python evaluate_submissions.py $(SUBMISSION_DIR) $(TRUTH_DIR) .005 .01
+	python evaluate_submissions.py $(SUBMISSION_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) .005 .01
