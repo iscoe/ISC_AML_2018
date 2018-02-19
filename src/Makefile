@@ -23,9 +23,8 @@ default :
 # Note: the mkdir calls here are to help out evaluation; if you are a 
 #       performer/participant in competition, you can ignore this.
 baseline-attack:
-	echo "TODO: run attack on 1000 images!"
-	# Generate zip for attack images
-
+	cd ./attacks/sample_attack && ./run_attack.sh
+	
 
 baseline-defense :
 	cd ./defenses/sample_defense_submission/ && ./defense_zip.sh 
