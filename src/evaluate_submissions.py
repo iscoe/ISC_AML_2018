@@ -23,23 +23,25 @@ __author__ = "mjp, nf"
 __date__ = 'Feb 2018'
 
 import sys
+import time
+import datetime
 import os
 import glob
 import shutil
 import tempfile
 from zipfile import ZipFile
-import pdb
 import pwd
 import grp
-from stat import S_IRUSR,S_IWUSR,S_IRGRP,S_IWGRP,S_IROTH,S_IWOTH
 from functools import partial
-from PIL import Image
 import json
 import subprocess
+from stat import S_IRUSR,S_IWUSR,S_IRGRP,S_IWGRP,S_IROTH,S_IWOTH
+from PIL import Image
 
 import numpy as np
 import pandas as pd
 
+import pdb
 
 
 N_CLASSES = 70  # TODO: fix this!
@@ -47,6 +49,11 @@ ESTIMATES_FILE = 'labels.csv'
 COMPETITION_UNTARGETED = "untargeted"
 
 
+
+
+#-------------------------------------------------------------------------------
+# misc. helper functions
+#-------------------------------------------------------------------------------
 
 # XXX: may update to use python logging package later
 def _info(message):
@@ -57,6 +64,7 @@ def _warning(message):
  
 def _error(message):
     print('[ERROR]: %s' % message)
+
 
 
 #-------------------------------------------------------------------------------
@@ -212,6 +220,57 @@ def _all_one_defense(input_dir, output_dir):
     #os.chown( out_path, uid,gid)
 
 
+
+def run_defense(defense_dir, offense_dir, output_dir):
+    """ Executes a defense on a collection of images.
+    """
+
+    #Load metadata from their submission
+    metadata = json.load(open(os.path.join(defense_dir,'metadata.json')))
+    outputname = '/output/predictions.csv'
+    
+
+    cmd = ['sudo', 'chown','1005:1005',defense_dir]
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chmod','775',defense_dir]
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chown','1005:1005',offense_dir]
+    
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chmod','775',offense_dir]
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chown','33:33',output_dir]
+    subprocess.call(cmd)
+    cmd = ['sudo', 'chmod','775',output_dir]
+    subprocess.call(cmd)
+
+
+    for file in os.listdir(defense_dir):
+        if file.endswith('.sh'):
+            cmd = ['sudo', 'chmod','+x',os.path.join(defense_dir, file)]
+            subprocess.call(cmd)
+        
+        # cmd = ['sudo', 'chown','1005:1005',os.path.join(defense_dir, file)]
+        # subprocess.call(cmd)
+        # cmd = ['sudo', 'chmod','775',os.path.join(defense_dir, file)]
+        # subprocess.call(cmd)
+
+
+    # cmd = ['sudo', 'chown','www-data:www-data',os.path.join(defense_dir, file)]
+    # subprocess.call(cmd)
+    
+    #create nvidia docker command to run
+    cmd = ['sudo', 'nvidia-docker', 'run',
+           '-v', '{0}:/input_images'.format(offense_dir),
+           '-v', '{0}:/output'.format(output_dir),
+           '-v', '{0}:/code'.format(defense_dir),
+           '-w', '/code',
+           '--user', 'www-data', metadata['container_gpu'], metadata['entry_point'],
+           '/input_images', outputname]
+    
+    subprocess.call(cmd)
+
+
 #-------------------------------------------------------------------------------
 #  Evauation (i.e. run attack vs defense)
 #-------------------------------------------------------------------------------
@@ -318,64 +377,19 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
 
 
 
-def run_defense(defense_dir, offense_dir, output_dir):
-    #Load metadata from their submission
-    metadata = json.load(open(os.path.join(defense_dir,'metadata.json')))
-    outputname = '/output/predictions.csv'
-    
-
-    cmd = ['sudo', 'chown','1005:1005',defense_dir]
-    subprocess.call(cmd)
-    cmd = ['sudo', 'chmod','775',defense_dir]
-    subprocess.call(cmd)
-    cmd = ['sudo', 'chown','1005:1005',offense_dir]
-    
-    subprocess.call(cmd)
-    cmd = ['sudo', 'chmod','775',offense_dir]
-    subprocess.call(cmd)
-    cmd = ['sudo', 'chown','33:33',output_dir]
-    subprocess.call(cmd)
-    cmd = ['sudo', 'chmod','775',output_dir]
-    subprocess.call(cmd)
-
-
-    for file in os.listdir(defense_dir):
-        if file.endswith('.sh'):
-            cmd = ['sudo', 'chmod','+x',os.path.join(defense_dir, file)]
-            subprocess.call(cmd)
-        
-        # cmd = ['sudo', 'chown','1005:1005',os.path.join(defense_dir, file)]
-        # subprocess.call(cmd)
-        # cmd = ['sudo', 'chmod','775',os.path.join(defense_dir, file)]
-        # subprocess.call(cmd)
-
-
-    # cmd = ['sudo', 'chown','www-data:www-data',os.path.join(defense_dir, file)]
-    # subprocess.call(cmd)
-    
-    #create nvidia docker command to run
-    cmd = ['sudo', 'nvidia-docker', 'run',
-           '-v', '{0}:/input_images'.format(offense_dir),
-           '-v', '{0}:/output'.format(output_dir),
-           '-v', '{0}:/code'.format(defense_dir),
-           '-w', '/code',
-           '--user', 'www-data', metadata['container_gpu'], metadata['entry_point'],
-           '/input_images', outputname]
-    
-    subprocess.call(cmd)
-
-def compute_metrics(results):
+def compute_metrics(results, out_dir):
     # TODO: save out some .csv files
     pass
 
 
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
-
 if __name__ == "__main__":
+    # command line parameters
     submission_dir = sys.argv[1]
     truth_dir = sys.argv[2]
-    epsilon_values_to_run = [float(x) for x in sys.argv[3:]]
+    output_dir = sys.argv[3]
+    epsilon_values_to_run = [float(x) for x in sys.argv[4:]]
 
     if not os.path.isdir(submission_dir):
         raise RuntimeError('Invalid submission directory: "%s"' % submission_dir)
@@ -383,13 +397,22 @@ if __name__ == "__main__":
     if not os.path.isdir(truth_dir):
         raise RuntimeError('Invalid truth directory: "%s"' % truth_dir)
 
+    if not os.path.isdir(output_dir):
+        os.makedirs(output_dir)
+
+    #----------------------------------------
+    # run attacks vs defenses
+    #----------------------------------------
+    tic = time.time()
     results = run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values_to_run)
+    runtime = time.time() - tic
+    _info('evaluation ran in %0.2f minutes' % (runtime/60.))
 
-    print(results) # TEMP
-    print(defenses) # TEMP
-    #pdb.set_trace() # TEMP
-    
-    compute_metrics(results)
+    timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+    fn = os.path.join(output_dir, 'results_%s.pkl' % timestamp)
+    results.to_pickle(fn)
 
-
-
+    #----------------------------------------
+    # generate feedback for performers
+    #----------------------------------------
+    compute_metrics(results, output_dir)
