@@ -44,8 +44,8 @@ import pandas as pd
 
 N_CLASSES = 70  # TODO: fix this!
 ESTIMATES_FILE = 'labels.csv'
-ATTACK_TAG = "attack"
-DEFENSE_TAG = "defense"
+COMPETITION_UNTARGETED = "untargeted"
+
 
 
 # XXX: may update to use python logging package later
@@ -133,8 +133,9 @@ def prepare_ae(ae_directory, tgt_directory, ref_directory, f_constraint):
         os.makedirs(ae_directory)
 
     for ref_file in _image_files(ref_directory):
+
         # Each truth file should have a corresponding ae file.
-        # If attacker neglected to provide it, use reference file as fallback.
+        # UPDATE: If attacker neglected to provide this image, use reference file as fallback.
         path, img_name = os.path.split(ref_file)
         ae_file = os.path.join(ae_directory, img_name)
 
@@ -142,12 +143,12 @@ def prepare_ae(ae_directory, tgt_directory, ref_directory, f_constraint):
             _warning('AE file "%s" not found!  Using ref as backup.' % ae_file)
             shutil.copyfile(ref_file, ae_file)
 
-        # load images and enforce constraint
+        # load images and enforce perturbation constraint(s)
         x_ae = np.array(Image.open(ae_file), dtype=np.uint8)
         x_ref = np.array(Image.open(ref_file), dtype=np.uint8)
-
         x_eval = f_constraint(x_ae, x_ref).astype(np.uint8)  # enforce constraint
 
+        # save admissible image
         out_file = os.path.join(tgt_directory, img_name)
         Image.fromarray(x_eval, mode='RGB').save(out_file)
 
@@ -210,14 +211,15 @@ def _all_one_defense(input_dir, output_dir):
 
     #os.chown( out_path, uid,gid)
 
+
 #-------------------------------------------------------------------------------
-#  Evauation (attack vs defense)
+#  Evauation (i.e. run attack vs defense)
 #-------------------------------------------------------------------------------
 
 def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_zip, ref_dir, epsilon_values):
     """ Runs a single attack against a single defense.
 
-    Produces a class estimate for every image/epsilon_value pair.
+        Note this evaluates this attack/defense pair for all values of epsilon.
     """
 
     # ground truth
@@ -225,31 +227,22 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
     n_test = len(test_files)
     assert(y_true.size == n_test)  # truth file should have only one label
 
-    # Extract attack submission (only need to do this once - contains all epsilon) 
+    # Extract attack submission (contains images for all epsilon values) 
     raw_dir = tempfile.mkdtemp()          # we unzip attacker's images here
     with ZipFile(attack_zip, 'r') as zf:
         zf.extractall(path=raw_dir)
 
+    # Extract defense submission (executable code)
     def_dir = tempfile.mkdtemp()
     with ZipFile(defense_zip, 'r') as zf:
         zf.extractall(path=def_dir)
 
-
-    results_attacker = []
-    results_defender = []
+    results = []
     
     for epsilon in epsilon_values:
         f_con = partial(enforce_ell_infty_constraint, epsilon=epsilon) # enforces constraint
         def_in_dir = tempfile.mkdtemp()       # images ready for defense live here
         def_out_dir = tempfile.mkdtemp()      # output from defense goes here
-
-
-        # (as per discussion on 2/13)
-        # TODO: As a first step, copy the clean images into the evaluation directory.
-        #       Then, overwrite with adversarial images.  This has the benefit of
-        #       avoiding situations where the attacker provides only a subset of
-        #       the required images.  In these cases, the defender is presented
-        #       with the clean image rather than nothing.
 
         #----------------------------------------
         # prepare the attack images for this value of epsilon
@@ -263,43 +256,33 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         #----------------------------------------
         # run defense on these images
         #----------------------------------------
-        # TODO: nvidia-docker run goes here!
-        #_all_one_defense(def_in_dir, def_out_dir)
         run_defense(def_dir, def_in_dir, def_out_dir)
         defense_files, Y_hat = load_estimates(os.path.join(ref_dir, ESTIMATES_FILE))
 
         #----------------------------------------
         # evaluate performance
         #----------------------------------------
-        attacker_score = np.zeros((n_test,))
-        defender_score = np.zeros((n_test,))
+        score = np.zeros((n_test,))
 
         for ii in range(len(test_files)):
-            fn, y_i= test_files[ii], y_true[ii]
+            fn, y_i = test_files[ii], y_true[ii]
 
-            # top-1 accuracy
+            # top-1 accuracy; 1 denotes a success by the defense
             idx = defense_files.index(fn)
             y_hat_i = Y_hat[idx,0]
-            if y_hat_i == y_i:
-                attacker_score[ii] = 0
-                defender_score[ii] = 1
-            else:
-                attacker_score[ii] = 1
-                defender_score[ii] = 0
+            score[ii] = 1 if (y_hat_i == y_i) else 0
 
-        results_attacker.append((ATTACK_TAG, attacker_id, defender_id, epsilon) + tuple(attacker_score))
-        results_defender.append((DEFENSE_TAG, attacker_id, defender_id, epsilon) + tuple(defender_score))
+        results.append((COMPETITION_UNTARGETED, attacker_id, defender_id, epsilon) + tuple(score))
 
     cols = ['competition', 'attacker-id', 'defender-id', 'epsilon'] + test_files
-    return pd.DataFrame(results_attacker, columns=cols), pd.DataFrame(results_defender, columns=cols)
+    return pd.DataFrame(results, columns=cols)
 
 
 
 def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
     """ Runs each attack vs each defense.
     """
-    all_attack = []
-    all_defense = []
+    all_results = []
 
     for attacker_id in _all_team_names(submission_dir):
         #----------------------------------------
@@ -326,13 +309,12 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
             # run attack vs defense and store result
             #----------------------------------------
             #try:
-            attack_result, defense_result = run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_zip, truth_dir, epsilon_values)
-            all_attack.append(attack_result)
-            all_defense.append(defense_result)
+            result_this_pair = run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_zip, truth_dir, epsilon_values)
+            all_results.append(result_this_pair)
             #except Exception as ex:
             #    _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
 
-    return pd.concat(all_attack), pd.concat(all_defense)
+    return pd.concat(all_results)
 
 
 
@@ -382,7 +364,7 @@ def run_defense(defense_dir, offense_dir, output_dir):
     
     subprocess.call(cmd)
 
-def compute_metrics(all_attacks, all_defenses):
+def compute_metrics(results):
     # TODO: save out some .csv files
     pass
 
@@ -401,13 +383,13 @@ if __name__ == "__main__":
     if not os.path.isdir(truth_dir):
         raise RuntimeError('Invalid truth directory: "%s"' % truth_dir)
 
-    attacks, defenses = run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values_to_run)
+    results = run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values_to_run)
 
-    print(attacks) # TEMP
+    print(results) # TEMP
     print(defenses) # TEMP
     #pdb.set_trace() # TEMP
     
-    compute_metrics(attacks, defenses)
+    compute_metrics(results)
 
 
 
