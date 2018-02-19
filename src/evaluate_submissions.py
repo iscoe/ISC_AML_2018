@@ -5,7 +5,7 @@
 
  Notes:
    o This general framework is inspired by the NIPS/Google Brain Kaggle
-     competition from 2017.  While our attack format is a bit different,
+     competition from 2017.  While our attack format is different,
      we adopt the same approach for defense.
 
    o All images are assumed to be of the form:
@@ -15,8 +15,6 @@
    o We anticipate running this framework on a linux machine 
      with tensorflow+keras and Anaconda Python 3 if one is
      interested in replicating this environment locally. 
-     We attempt to provide comments where this assumption
-     is being made.
 
 """
 
@@ -27,6 +25,7 @@ __date__ = 'Feb 2018'
 import sys
 import os
 import glob
+import shutil
 import tempfile
 from zipfile import ZipFile
 import pdb
@@ -75,6 +74,7 @@ def _all_team_names(submission_dir):
     """ Returns a list of all team names (same as directory names).
     """
     dirnames = [x for x in os.listdir(submission_dir) if not x.startswith('.')]
+    dirnames.sort()
     return dirnames
 
 
@@ -127,34 +127,26 @@ def prepare_ae(ae_directory, tgt_directory, ref_directory, f_constraint):
        f_constraint  : A function f(x,y) which ensures image x is close enough to image y.
 
     """
+
     if not os.path.exists(ae_directory):
         _warning('AE directory "%s" not found - did attack not address this epsilon?' % ae_directory)
-        return
+        os.makedirs(ae_directory)
 
-    ### In case attacker did not submit all the files
-    # for filename in _image_files(ref_directory):
-    #     path, img_name = os.path.split(filename)
-    #     ref_file = os.path.join(ref_directory, img_name)
-    #     x_ref = np.array(Image.open(ref_file))
-    #     if not os.path.exists(ref_file):
-    #         _warning('no such reference file "%s"; ignoring this image' % ref_file)
-    #         continue
-    #     out_file = os.path.join(tgt_directory, img_name)
-    #     Image.fromarray(x_ref, mode='RGB').save(out_file)
+    for ref_file in _image_files(ref_directory):
+        # Each truth file should have a corresponding ae file.
+        # If attacker neglected to provide it, use reference file as fallback.
+        path, img_name = os.path.split(ref_file)
+        ae_file = os.path.join(ae_directory, img_name)
 
-    for filename in _image_files(ae_directory):
-        path, img_name = os.path.split(filename)
-        x_ae = np.array(Image.open(filename), dtype=np.uint8)
+        if not os.path.exists(ae_file):
+            _warning('AE file "%s" not found!  Using ref as backup.' % ae_file)
+            shutil.copyfile(ref_file, ae_file)
 
-        # load the corresponding image from reference directory
-        ref_file = os.path.join(ref_directory, img_name)
-        if not os.path.exists(ref_file):
-            _warning('no such reference file "%s"; ignoring this image' % ref_file)
-            continue
-        x_ref = np.array(Image.open(ref_file))
+        # load images and enforce constraint
+        x_ae = np.array(Image.open(ae_file), dtype=np.uint8)
+        x_ref = np.array(Image.open(ref_file), dtype=np.uint8)
 
-        # create the image that will actually be evaluated
-        x_eval = f_constraint(x_ae, x_ref).astype(np.uint8)
+        x_eval = f_constraint(x_ae, x_ref).astype(np.uint8)  # enforce constraint
 
         out_file = os.path.join(tgt_directory, img_name)
         Image.fromarray(x_eval, mode='RGB').save(out_file)
@@ -217,6 +209,7 @@ def _all_one_defense(input_dir, output_dir):
             f.write(line + "\n")
 
     #os.chown( out_path, uid,gid)
+
 #-------------------------------------------------------------------------------
 #  Evauation (attack vs defense)
 #-------------------------------------------------------------------------------
@@ -340,6 +333,8 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
             #    _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
 
     return pd.concat(all_attack), pd.concat(all_defense)
+
+
 
 def run_defense(defense_dir, offense_dir, output_dir):
     #Load metadata from their submission
