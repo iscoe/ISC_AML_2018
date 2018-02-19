@@ -378,14 +378,49 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
 
 
 def compute_metrics(results, out_dir):
-    # TODO: save out some .csv files
-    pass
+
+    # Create output subdirectories (if needed)
+    # TODO: update these as needed for actual directory structure
+    out_dir_attack = os.path.join(out_dir, 'attack')
+    if not os.path.isdir(out_dir_attack):
+        os.makedirs(out_dir_attack)
+
+    out_dir_defense = os.path.join(out_dir, 'defense')
+    if not os.path.isdir(out_dir_defense):
+        os.makedirs(out_dir_defense)
+
+    n_images = results.shape[1] - 4
+
+    #----------------------------------------
+    # compute average performance (per test image)
+    #----------------------------------------
+    results_def = results.reset_index().groupby("defender-id").mean()
+    results_def = results_def.drop(['epsilon', 'index'], axis=1)
+    results_def.to_csv(os.path.join(out_dir_defense, 'details.csv'))
+
+    results_att = -results.reset_index().groupby("attacker-id").mean()
+    results_att = results_att.drop(['epsilon', 'index'], axis=1)
+    results_att.to_csv(os.path.join(out_dir_attack, 'details.csv'))
+
+    #----------------------------------------
+    # compute net performance (avg. across all test images)
+    #----------------------------------------
+    # TODO: add header!!
+    results_def_agg = results_def.mean(axis=1)
+    results_def_agg.to_csv(os.path.join(out_dir_defense, "scores.csv"))
+
+    results_att_agg = results_att.mean(axis=1)
+    results_att_agg.to_csv(os.path.join(out_dir_attack, "scores.csv"))
+
+    pdb.set_trace()
 
 
 #-------------------------------------------------------------------------------
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":
+    #----------------------------------------
     # command line parameters
+    #----------------------------------------
     submission_dir = sys.argv[1]
     truth_dir = sys.argv[2]
     output_dir = sys.argv[3]
@@ -400,6 +435,11 @@ if __name__ == "__main__":
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
 
+    # we'll store all results from this run in a separate, timestamped directory
+    timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
+    output_dir_ts = os.path.join(output_dir, timestamp)
+    os.makedirs(output_dir_ts)
+
     #----------------------------------------
     # run attacks vs defenses
     #----------------------------------------
@@ -408,11 +448,10 @@ if __name__ == "__main__":
     runtime = time.time() - tic
     _info('evaluation ran in %0.2f minutes' % (runtime/60.))
 
-    timestamp = datetime.datetime.fromtimestamp(time.time()).strftime('%Y-%m-%d %H:%M:%S')
-    fn = os.path.join(output_dir, 'results_%s.pkl' % timestamp)
+    fn = os.path.join(output_dir_ts, 'results.pkl')
     results.to_pickle(fn)
 
     #----------------------------------------
     # generate feedback for performers
     #----------------------------------------
-    compute_metrics(results, output_dir)
+    compute_metrics(results, output_dir_ts)
