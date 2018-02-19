@@ -10,24 +10,25 @@ import pdb
 import tensorflow as tf
 from keras import backend as K
 from keras.models import Sequential, load_model
-from keras.applications import imagenet_utils
 from keras.utils.np_utils import to_categorical
 from cleverhans.utils_keras import KerasModelWrapper
 from cleverhans.attacks import FastGradientMethod
 
 def main():
-    ### Params of the data are here
+
+    ### Params of the run are here
     data_dir = params.directories['dataset']
-    adv_fgsm(data_dir, num_adv=1000)
+    adv_fgsm(data_dir, num_adv=10,eps = [0.0,0.005,0.01, 0.03, 0.04, 0.1])
    
 
-"""
-Attacks the fmow baseline model with an FGSM attack from cleverhans
-[  Params  ]: 
-    data_dir: directory that stores the image files
-    num_adv: the number of adversarial examples to generate, 'max' is all
-"""
-def adv_fgsm(data_dir,num_adv='max'):
+def adv_fgsm(data_dir,num_adv='max',eps=[0.01]):
+    """ Attacks the fmow baseline model with an FGSM attack from cleverhans
+
+    data_dir: directory with the image files
+    num_adv: the number of adversarial images to generate, 'max' is all
+    eps: a list of perturbation constraints
+    """
+
     sess = tf.Session()
     K.set_learning_phase(0)
     K.set_session(sess)
@@ -37,7 +38,6 @@ def adv_fgsm(data_dir,num_adv='max'):
     model = load_model('cnn_image_only.model')
     model.compile(loss='categorical_crossentropy', optimizer='SGD',metrics=['accuracy'])
     
-    ### This is ineffiecient, will speed up 
     img_paths = prep_filelist(data_dir)
     xTest, yTest = prep_adv_set(model,img_paths,num_adv=num_adv)
     labels_all = []
@@ -48,7 +48,6 @@ def adv_fgsm(data_dir,num_adv='max'):
     fgsm = FastGradientMethod(wrap, sess=sess)
 
     # Generate perturbations at various epsilon
-    eps = [0.0,0.005,0.01, 0.03, 0.04, 0.1]
     save_folder = 'adv_out/'
     if not os.path.exists(save_folder):
         os.mkdir(save_folder)
@@ -70,7 +69,8 @@ def adv_fgsm(data_dir,num_adv='max'):
             cat = yTest[i]
             cat_input = np.expand_dims(cat, axis=0)
             pred = model.predict(img, batch_size=1)
-            img_out = ((img + 1) * 255).astype(np.uint8)
+          
+            img_out = prepare_image_output(img)
 
             img_adv_out = np.concatenate((img_adv_out,img_out), axis =0)
             if np.argmax(pred) == np.argmax(cat_input):
@@ -85,18 +85,19 @@ def adv_fgsm(data_dir,num_adv='max'):
             img_PIL.save(os.path.join(save_folder_eps,"adv_img_"+str(i)+".png"))
             if ep == 0:
                 labels_all.append(["adv_img_"+str(i)+".png",str(np.argmax(yTest[i]))])
+
         print("[  Info  ]: The accuracy on eps " + str(ep) + ': ' +str(float(hits)/counter))
+
+    ### Save out the clean labels for debugging    
     labels_np = np.asarray(labels_all)
     np.savetxt(os.path.join(save_folder,'labels.csv'), labels_np, fmt='%s', delimiter=',')
       
-"""
-This will return a list of all the paths to the png files
-[  Params  ]:
-    data_dir: directory of the pngs
-[  Returns ]:
-    file_paths: list of paths to all of the png files
-"""
+
 def prep_filelist(data_dir):
+    """ Returns a list of all the filepaths of the png files
+
+    data_dir: directory containing the .png files
+    """
     file_paths = []
     # Create a cache to save time on rerun
     cache_path = 'cache/'
@@ -118,9 +119,55 @@ def prep_filelist(data_dir):
         print(" [ INFO ] : saving filepaths to cache")      
         np.savetxt(os.path.join(cache_path,'all_filepaths.csv'), file_paths, fmt='%s',delimiter=',')
     return file_paths
- 
+
+
+def imagenet_preprocessing(image):
+    """ Function to perform imagenet preprocessing on image for densenet. It removes the imagenet mean and divides by 255,
+        moving the image to [-1, 1]
+
+    image: the image to move from [0,255] to [-1,1]
+    """
+    img = image.copy()
+    mean = [103.939, 116.779, 123.68]
+
+    img = img[..., ::-1]
+
+    img[..., 0] -= mean[0]
+    img[..., 1] -= mean[1]
+    img[..., 2] -= mean[2]
+
+    img /= 255.0
+
+    return img
+
+
+def prepare_image_output(image):
+    """ Undoes the imagenet preprocessing in order to output a clean image
+
+    image: image to be moved to [0, 255] that has been imagenet preprocessed
+    """
+    img = image.copy()
+    mean = [103.939, 116.779, 123.68]
+
+    img *= 255.0
+    
+    img[..., 0] += mean[0]
+    img[..., 1] += mean[1]
+    img[..., 2] += mean[2]
+    
+    img = img[..., ::-1]
+    
+
+    return img.astype(np.uint8)
+
 
 def prep_adv_set(model, filepaths, num_adv=1000):
+    """ Loads and returns images with their predictions that are correctly predicted by the provided model
+
+    model: a keras model to evaluate images on
+    filepaths: a list of filepaths to images
+    num_adv: number of adversarial images to prepare
+    """
     if num_adv == 'max':
         num_adv = len(filepaths)
     random.shuffle(filepaths)
@@ -138,8 +185,7 @@ def prep_adv_set(model, filepaths, num_adv=1000):
             img_pil = Image.open(img_path)
             x_test = np.expand_dims(np.asarray(img_pil).astype(np.float32),axis =0)
             category = img_path.split('/')[-2]
-            x_test = imagenet_utils.preprocess_input(x_test)
-            x_test = x_test / 255.0
+            x_test = imagenet_preprocessing(x_test)
             y_test = to_categorical(params.category_names.index(category), params.num_labels)
             x_batch[j] = x_test
             y_batch[j] = y_test
