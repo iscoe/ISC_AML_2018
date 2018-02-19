@@ -12,7 +12,7 @@
 # Directories needed for evaluation
 SUBMISSION_DIR=../misc/simulated_environment/submissions
 GROUND_TRUTH_DIR=../misc/simulated_environment/truth
-OUTPUT_DIR=./
+OUTPUT_DIR=./Evaluation_Output
 
 #-------------------------------------------------------------------------------
 
