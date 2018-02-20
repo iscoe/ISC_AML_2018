@@ -1,6 +1,10 @@
 #!/bin/bash
 
-DATA_DIR='/home/neilf/Fendley/adversarial/ISC_AML_2018/image_sets/FMOW_1000_CORRECT'
+#-------------------------------------------------------------------------------
+# update paths as needed for your local configuration
+#-------------------------------------------------------------------------------
+#DATA_DIR='/home/neilf/Fendley/adversarial/ISC_AML_2018/image_sets/FMOW_1000_CORRECT'
+DATA_DIR='/home/fendlnm1/FMOW_1000_CORRECT'
 OUTPUT_DIR='./submission_run'
 
 #-------------------------------------------------------------------------------
@@ -9,7 +13,8 @@ OUTPUT_DIR='./submission_run'
 
 # check out a local copy of cleverhans (CH), if one does not already exist.
 # if your python already has CH installed, you may want to omit this.
-if [ ! -f ./cleverhans ]; then
+if [ ! -d './cleverhans' ]; then
+    echo "checkout CH..."
     git clone https://github.com/tensorflow/cleverhans.git
 fi
 
