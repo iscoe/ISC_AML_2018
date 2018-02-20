@@ -98,7 +98,9 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
         os.mkdir(save_folder)
         
     for ep in eps:
-        fgsm_params = {'eps': float(ep)/255.0}
+        print("[Info] Attacking epsilon " + ep)
+        fgsm_params = {'eps': (float(ep)/255.0)-(0.001)}
+        ep = int(ep)
         adv_x = fgsm.generate(x, **fgsm_params)
         img_adv_out = np.zeros((0,224,224,3),dtype=np.uint8)
         eval_par = {'batch_size': 32}
@@ -107,17 +109,21 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
 
         for i in range(len(x_input)):
             img_clean = np.expand_dims(x_input[i], axis=0)
-            img = adv_x.eval(session=sess, feed_dict={x:img_clean})
+            if ep == 0:
+                img = img_clean
+            else:
+                img = adv_x.eval(session=sess, feed_dict={x:img_clean})
             
-            if y_input != None:
+            if y_input is not None:
                 cat = y_input[i]
                 cat_input = np.expand_dims(cat, axis=0)
             pred = model.predict(img, batch_size=1)
           
             img_out = prepare_image_output(img)
 
+
             img_adv_out = np.concatenate((img_adv_out,img_out), axis =0)
-            if y_input != None:
+            if y_input is not None:
                 if np.argmax(pred) == np.argmax(cat_input):
                     hits += 1
                 counter += 1
@@ -128,9 +134,9 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
         for i in range(img_adv_out.shape[0]):
             img_PIL = Image.fromarray(img_adv_out[i])
             img_PIL.save(os.path.join(save_folder_eps,filenames[i]))
-            if ep == 0 and y_input != None:
+            if ep == 0 and y_input is not None:
                 labels_all.append([filenames[i]+".png",str(np.argmax(y_input[i]))])
-        if y_input != None:
+        if y_input is not None:
             print("[  Info  ]: The accuracy on eps " + str(ep) + ': ' +str(float(hits)/counter))
             if ep == 0:
                 print("Saving out labels")
@@ -240,7 +246,7 @@ def prep_adv_set(model, filepaths, num_adv=1000, batch_size=256):
             y_test = to_categorical(category_map(category), 63)
             x_batch[j] = x_test
             y_batch[j] = y_test
-            names_batch.append(category)
+            names_batch.append(os.path.basename(img_path))
         pred_batch = model.predict(x_batch, batch_size=batch_size)
         for idx in range(batch_size):
             if np.argmax(y_batch[idx]) == np.argmax(pred_batch[idx]):
