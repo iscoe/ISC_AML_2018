@@ -58,3 +58,6 @@ dummy : baseline-attack baseline-defense dummy-framework eval
 
 eval :
 	python evaluate_submissions.py $(TEAM_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 1 5
+
+query :
+	python evaluate_submissions.py $(TEAM_DIR) query $(OUTPUT_DIR)

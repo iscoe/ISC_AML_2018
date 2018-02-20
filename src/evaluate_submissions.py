@@ -46,7 +46,7 @@ import pdb
 
 ESTIMATES_FILE = 'labels.csv'            # name of file containing ground truth within test images directory
 COMPETITION_UNTARGETED = "untargeted"    # tag identifying this particular competition
-
+QUERY = True
 
 
 
@@ -251,6 +251,27 @@ def run_defense(defense_dir, offense_dir, output_dir):
     subprocess.call(cmd)
 
 
+def run_one_query_vs_one_defense(query_id, query_zip, defender_id, defense_zip):
+    """ Runs a single query against a single defense.
+    """
+    
+
+    query_dir = tempfile.mkdtemp()
+    with ZipFile(query_zip, 'r') as zf:
+        zf.extractall(path=query_dir)
+
+    # Extract defense submission (executable code)
+    def_dir = tempfile.mkdtemp()
+    with ZipFile(defense_zip, 'r') as zf:
+        zf.extractall(path=def_dir)
+
+    query_files = [os.path.basename(x) for x in _image_files(query_dir)]  # list of files created by attacker
+    def_out_dir = tempfile.mkdtemp()      # output from defense goes here
+
+    run_defense(def_dir, query_dir, def_out_dir)
+
+    return np.genfromtxt(os.path.join(def_out_dir,ESTIMATES_FILE),dtype='str', delimiter=',')
+
 #-------------------------------------------------------------------------------
 #  Evauation (i.e. run attack vs defense)
 #-------------------------------------------------------------------------------
@@ -287,6 +308,7 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         # prepare the attack images for this value of epsilon
         #----------------------------------------
         input_dir = os.path.join(raw_dir, "%d" % epsilon)
+
         prepare_ae(input_dir, def_in_dir, ref_dir, f_con)
         if not _are_images_equivalent_p(input_dir, def_in_dir):
             _warning('input images did not satisfy constraints!!  They have been clipped accordingly.')
@@ -316,6 +338,42 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
     cols = ['competition', 'attacker-id', 'defender-id', 'epsilon'] + test_files
     return pd.DataFrame(results, columns=cols)
 
+def run_queries_vs_defenses(submission_dir):
+    """ Runs each attack vs each defense.
+    """
+    all_results = []
+
+    for query_id in _all_team_names(submission_dir):
+        #----------------------------------------
+        # Get the attack submission
+        #----------------------------------------
+        _info('processing attacker: "%s"' % query_id)
+        query_zip = _get_submission(os.path.join(submission_dir, query_id), 'query')
+        if query_zip is None:
+            continue # no attack from this team
+
+        for defender_id in _all_team_names(submission_dir):
+            #----------------------------------------
+            # get the defense submission
+            #----------------------------------------
+            if defender_id == query_id:  # do not play same team's attack vs defense
+                continue
+
+            _info('processing : "%s" vs "%s"' % (query_id, defender_id))
+            defense_zip = _get_submission(os.path.join(submission_dir, defender_id), 'defense')
+            if defense_zip is None:
+                continue # no defense submission from this team
+
+            #----------------------------------------
+            # run attack vs defense and store result
+            #----------------------------------------
+            try:
+                result_this_pair = run_one_query_vs_one_defense(query_id, query_zip, defender_id, defense_zip)
+                all_results.append(result_this_pair)
+            except Exception as ex:
+                _warning('%s vs %s failed! %s' % (query_id, defender_id, str(ex)))
+
+    return (all_results)
 
 
 def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
@@ -405,11 +463,16 @@ if __name__ == "__main__":
     truth_dir = sys.argv[2]
     output_dir = sys.argv[3]
     epsilon_values_to_run = [float(x) for x in sys.argv[4:]]
+    run_competition = True
+
+    if truth_dir == 'query':
+        run_competition = False
+
 
     if not os.path.isdir(submission_dir):
         raise RuntimeError('Invalid submission directory: "%s"' % submission_dir)
  
-    if not os.path.isdir(truth_dir):
+    if not os.path.isdir(truth_dir) and run_competition:
         raise RuntimeError('Invalid truth directory: "%s"' % truth_dir)
 
     if not os.path.isdir(output_dir):
@@ -420,18 +483,38 @@ if __name__ == "__main__":
     output_dir_ts = os.path.join(output_dir, timestamp)
     os.makedirs(output_dir_ts)
 
-    #----------------------------------------
-    # run attacks vs defenses
-    #----------------------------------------
-    tic = time.time()
-    results = run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values_to_run)
-    runtime = time.time() - tic
-    _info('evaluation ran in %0.2f minutes' % (runtime/60.))
+    if run_competition:
+        #----------------------------------------
+        # run attacks vs defenses
+        #----------------------------------------
+        tic = time.time()
+        results = run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values_to_run)
+        runtime = time.time() - tic
+        _info('evaluation ran in %0.2f minutes' % (runtime/60.))
 
-    fn = os.path.join(output_dir_ts, 'results.pkl')
-    results.to_pickle(fn)
+        fn = os.path.join(output_dir_ts, 'results.pkl')
+        results.to_pickle(fn)
 
-    #----------------------------------------
-    # generate feedback for performers
-    #----------------------------------------
-    compute_metrics(results, output_dir_ts)
+        #----------------------------------------
+        # generate feedback for performers
+        #----------------------------------------
+        compute_metrics(results, output_dir_ts)
+
+    else:
+        #----------------------------------------
+        # run query images vs defenses
+        #----------------------------------------
+        tic = time.time()
+        print('Running Queries')
+        results = run_queries_vs_defenses(submission_dir)
+        runtime = time.time() - tic
+        _info('evaluation ran in %0.2f minutes' % (runtime/60.))
+
+        #-----------------------------------------
+        # save feedback
+        #-----------------------------------------
+
+
+
+
+
