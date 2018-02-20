@@ -26,6 +26,11 @@ if [ ! -f cnn_image_only.model ]; then
 fi
 
 #-------------------------------------------------------------------------------
-# run attack!
+# run attack! (if we haven't already)
 #-------------------------------------------------------------------------------
-PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR 0 1 2 3 4 5 10 15 20 
+if [ ! -d $OUTPUT_DIR ]; then
+    PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR 0 1 2 3 4 5 10 15 20 
+fi
+
+# zip up the submission
+zip -r sample_attack_fgm.zip $OUTPUT_DIR
