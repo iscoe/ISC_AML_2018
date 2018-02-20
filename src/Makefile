@@ -17,7 +17,8 @@
 
 SIM_DIR=./simulated_environment
 TEAM_DIR=$(SIM_DIR)/submissions
-GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
+#GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
+GROUND_TRUTH_DIR=/home/fendlnm1/Fendley/adversarial/ISC_AML_2018/image_sets/FMOW_1000_CORRECT_2
 
 OUTPUT_DIR=./Evaluation_Output
 
@@ -48,9 +49,9 @@ dummy-framework :
 	mkdir -p $(TEAM_DIR)/team_b/defense
 	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_b/defense
 	echo "creating team C"
-	mkdir -p $(TEAM_DIR)/team_b/attack
-	mkdir -p $(TEAM_DIR)/team_b/defense
-	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_b/defense
+	mkdir -p $(TEAM_DIR)/team_c/attack
+	mkdir -p $(TEAM_DIR)/team_c/defense
+	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_c/defense
 
 
 eval :
