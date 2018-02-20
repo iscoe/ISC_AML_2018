@@ -135,7 +135,7 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
             img_PIL = Image.fromarray(img_adv_out[i])
             img_PIL.save(os.path.join(save_folder_eps,filenames[i]))
             if ep == 0 and y_input is not None:
-                labels_all.append([filenames[i]+".png",str(np.argmax(y_input[i]))])
+                labels_all.append([filenames[i],str(np.argmax(y_input[i]))])
         if y_input is not None:
             print("[  Info  ]: The accuracy on eps " + str(ep) + ': ' +str(float(hits)/counter))
             if ep == 0:
