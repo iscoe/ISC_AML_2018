@@ -4,14 +4,21 @@
 #
 #   baseline-attack   : Demonstrates how to generate AE using CleverHans (CH)
 #   baseline-defense  : Demonstrates how one might attempt to classify images.
+#
+#   dummy-framework   : Creates a local simulation of inputs from
+#                       a few contenstants (for debugging)
+#                       Requires one run the baseline attacks/defenses first.
+#
 #   eval              : Demonstrates evaluation framework.
+#                       Requires running dummy-framework first.
 #
 # Feb, 2018
 #-------------------------------------------------------------------------------
 
-# Directories needed for evaluation
-SUBMISSION_DIR=../misc/simulated_environment/submissions
-GROUND_TRUTH_DIR=../misc/simulated_environment/truth
+SIM_DIR=./simulated_environment
+TEAM_DIR=$(SIM_DIR)/submissions
+GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
+
 OUTPUT_DIR=./Evaluation_Output
 
 #-------------------------------------------------------------------------------
@@ -27,14 +34,24 @@ baseline-defense :
 	cd ./defenses/sample_defense_submission/ && ./defense_zip.sh 
 
 
-dummy-framework:
-	mkdir -p $(SUBMISSION_DIR)/team_a/attack
-	mkdir -p $(SUBMISSION_DIR)/team_a/defense
-	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(SUBMISSION_DIR)/team_a/defense
-	cp ./attacks/sample_attack/sample_attack_fgm.zip $(SUBMISSION_DIR)/team_a/attack
-	mkdir -p $(SUBMISSION_DIR)/team_b/attack
-	mkdir -p $(SUBMISSION_DIR)/team_b/defense
-	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(SUBMISSION_DIR)/team_b/defense
+dummy-framework :
+	echo "creating ground truth"
+	mkdir -p $(SIM_DIR)/ground_truth
+	cp $(GROUND_TRUTH_DIR)/* $(SIM_DIR)/ground_truth
+	echo "creating team A"
+	mkdir -p $(TEAM_DIR)/team_a/attack
+	mkdir -p $(TEAM_DIR)/team_a/defense
+	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_a/defense
+	cp ./attacks/sample_attack/sample_attack_fgm.zip $(TEAM_DIR)/team_a/attack
+	echo "creating team B"
+	mkdir -p $(TEAM_DIR)/team_b/attack
+	mkdir -p $(TEAM_DIR)/team_b/defense
+	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_b/defense
+	echo "creating team C"
+	mkdir -p $(TEAM_DIR)/team_b/attack
+	mkdir -p $(TEAM_DIR)/team_b/defense
+	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_b/defense
+
 
 eval :
-	python evaluate_submissions.py $(SUBMISSION_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) .005 .01
+	python evaluate_submissions.py $(TEAM_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 1 5
