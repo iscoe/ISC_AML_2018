@@ -3,8 +3,8 @@
 #-------------------------------------------------------------------------------
 # update paths as needed for your local configuration
 #-------------------------------------------------------------------------------
-#DATA_DIR='/home/neilf/Fendley/adversarial/ISC_AML_2018/image_sets/FMOW_1000_CORRECT'
-DATA_DIR='/home/fendlnm1/FMOW_1000_CORRECT'
+#DATA_DIR='/home/neilf/Fendley/adversarial/ISC_AML_2018/image_sets/val_prepped'
+DATA_DIR=$1
 OUTPUT_DIR='./submission_run'
 
 #-------------------------------------------------------------------------------
@@ -29,7 +29,7 @@ fi
 # run attack! (if we haven't already)
 #-------------------------------------------------------------------------------
 if [ ! -d $OUTPUT_DIR ]; then
-    PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR 0 1 2 3 4 5 10 15 20 
+    PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR 0 1 5
 fi
 
 # zip up the submission

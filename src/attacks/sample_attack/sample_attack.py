@@ -43,9 +43,9 @@ def main(args):
 def category_map(name):
     category_names = ['false_detection', 'airport', 'airport_hangar', 'airport_terminal', 'amusement_park', 'aquaculture', 'archaeological_site', 'barn', 'border_checkpoint', 'burial_site', 'car_dealership', 'construction_site', 'crop_field', 'dam', 'debris_or_rubble', 'educational_institution', 'electric_substation', 'factory_or_powerplant', 'fire_station', 'flooded_road', 'fountain', 'gas_station', 'golf_course', 'ground_transportation_station', 'helipad', 'hospital', 'interchange', 'lake_or_pond', 'lighthouse', 'military_facility', 'multi-unit_residential', 'nuclear_powerplant', 'office_building', 'oil_or_gas_facility', 'park', 'parking_lot_or_garage', 'place_of_worship', 'police_station', 'port', 'prison', 'race_track', 'railway_bridge', 'recreational_facility', 'impoverished_settlement', 'road_bridge', 'runway', 'shipyard', 'shopping_mall', 'single-unit_residential', 'smokestack', 'solar_farm', 'space_facility', 'stadium', 'storage_tank','surface_mine', 'swimming_pool', 'toll_booth', 'tower', 'tunnel_opening', 'waste_disposal', 'water_treatment_facility', 'wind_farm', 'zoo']
     return category_names.index(name)
-  
-def load_images(data_dir):
 
+
+def load_images(data_dir):
     """
     Loads images from a challenge directory
     """
@@ -99,14 +99,15 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
         
     for ep in eps:
         print("[Info] Attacking epsilon " + ep)
-        fgsm_params = {'eps': (float(ep)/255.0)-(0.001)}
+        fgsm_params = {'eps': (float(ep)/255.0)-(0.01)}
         ep = int(ep)
         adv_x = fgsm.generate(x, **fgsm_params)
-        img_adv_out = np.zeros((0,224,224,3),dtype=np.uint8)
         eval_par = {'batch_size': 32}
         counter = 0
         hits = 0
-
+        save_folder_eps = os.path.join(save_folder, str(ep))
+        if not os.path.exists(save_folder_eps):
+            os.mkdir(save_folder_eps)
         for i in range(len(x_input)):
             img_clean = np.expand_dims(x_input[i], axis=0)
             if ep == 0:
@@ -117,27 +118,26 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
             if y_input is not None:
                 cat = y_input[i]
                 cat_input = np.expand_dims(cat, axis=0)
-            pred = model.predict(img, batch_size=1)
+            
           
             img_out = prepare_image_output(img)
+      
 
+            img_PIL = Image.fromarray(img_out, 'RGB')
+            img_PIL.save(os.path.join(save_folder_eps,filenames[i]))
 
-            img_adv_out = np.concatenate((img_adv_out,img_out), axis =0)
+            if ep == 0 and y_input is not None:
+                labels_all.append([filenames[i],np.argmax(y_input[i])])
+    
             if y_input is not None:
+                pred = model.predict(img, batch_size=1)
                 if np.argmax(pred) == np.argmax(cat_input):
                     hits += 1
                 counter += 1
-        
-        save_folder_eps = os.path.join(save_folder, str(ep))
-        if not os.path.exists(save_folder_eps):
-            os.mkdir(save_folder_eps)
-        for i in range(img_adv_out.shape[0]):
-            img_PIL = Image.fromarray(img_adv_out[i])
-            img_PIL.save(os.path.join(save_folder_eps,filenames[i]))
-            if ep == 0 and y_input is not None:
-                labels_all.append([filenames[i],str(np.argmax(y_input[i]))])
+
+         
         if y_input is not None:
-            print("[  Info  ]: The accuracy on eps " + str(ep) + ': ' +str(float(hits)/counter))
+            print("[Info]: The accuracy on eps " + str(ep) + ': ' +str(float(hits)/counter))
             if ep == 0:
                 print("Saving out labels")
                 labels_np = np.asarray(labels_all)
@@ -209,8 +209,7 @@ def prepare_image_output(image):
     
     img = img[..., ::-1]
     
-
-    return img.astype(np.uint8)
+    return np.squeeze(img.astype(np.uint8))
 
 
 def prep_adv_set(model, filepaths, num_adv=1000, batch_size=256):
@@ -228,7 +227,7 @@ def prep_adv_set(model, filepaths, num_adv=1000, batch_size=256):
     y_test_final = np.zeros((0,63))
     names_final = []
     
-    print("[  INFO  ]:  We are loading correctly detected images")
+    print("[INFO]:  We are loading correctly detected images")
     while x_test_final.shape[0] < num_adv:
         if (len(filepaths) - i) < batch_size:
             batch_size = int(len(filepaths) - i)
@@ -253,11 +252,11 @@ def prep_adv_set(model, filepaths, num_adv=1000, batch_size=256):
                 x_test_final = np.concatenate((x_test_final, np.expand_dims(x_batch[idx],axis=0)), axis = 0)
                 y_test_final = np.concatenate((y_test_final, np.expand_dims(y_batch[idx],axis=0)), axis = 0)
                 names_final.append(names_batch[idx])
-        print ("[  STATUS  ]:  On image " + str(i) + ', ' + str(x_test_final.shape[0]) + " good images loaded")
+        print ("[STATUS]:  On image " + str(i) + ', ' + str(x_test_final.shape[0]) + " good images loaded")
     x_test_final = x_test_final[:num_adv]
     y_test_final = y_test_final[:num_adv]
     names_final = names_final[:num_adv]
-    print ("[  Info   ]: Finished loading good clean examples, found ", x_test_final.shape[0], "correct detections in ", i, "images")
+    print ("[Info ]: Finished loading good clean examples, found ", x_test_final.shape[0], "correct detections in ", i, "images")
     return x_test_final, y_test_final, names_final
 
 

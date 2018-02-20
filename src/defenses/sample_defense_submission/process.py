@@ -2,9 +2,10 @@
 import sys
 import redis
 import random
+import csv
 import os
 
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
+os.environ['CUDA_VISIBLE_DEVICES'] = '0'
 import json
 
 sys.path.append('./data_ml_functions/DenseNet')
@@ -30,12 +31,8 @@ def main(args):
     output_file = args[2]
     
     # Load in the images from the specified folder while preserving order
-    file_list = [0] * len(os.listdir(input_path))
-    for val in os.listdir(input_path):
-        if val.endswith('.png'):
-            num = int(val.split('_')[-1][:-4])
-            file_list[num] = os.path.join(input_path,val)
-    xTest = prep_test_images(file_list)
+    file_list = os.listdir(input_path)
+    xTest = prep_test_images(file_list,input_path)
         
     
     # Use the classifier to generate predictions
@@ -45,10 +42,15 @@ def main(args):
     # Generate and save csv of top 5 classes for each image
     preds_out = []
     for i in range(preds.shape[0]):
-        preds_out.append([os.path.basename(file_list[i]),str(np.argsort(val)[::-1][:5])])
+        preds_out.append([os.path.basename(file_list[i]),(np.argsort(preds[i])[::-1][:5])])
         
+    csvfile = output_file
+    with open(csvfile, "w") as output:
+        writer = csv.writer(output, lineterminator='\n')
+        for pred in preds_out:
+            writer.writerow([pred[0],pred[1][0],pred[1][1],pred[1][2],pred[1][3],pred[1][4]])    
 
-    np.savetxt(output_file, preds_out, fmt='%s', delimiter=',')
+    #np.savetxt(output_file, preds_out, fmt='%s', delimiter=',')
     print(" [ INFO ]: wrote predictions to ", output_file)
     
 """ Function to prepare the images from the extracted bounding boxes
@@ -58,11 +60,11 @@ def main(args):
 [ Returns ]:
     xTest: an np array of the imagenet_mean subtracted data between [0,1]
 """ 
-def prep_test_images(file_paths,num_images=1000):
+def prep_test_images(file_paths,direc,num_images=1000):
     xTest = np.zeros((num_images,224,224,3))
     for i in range(xTest.shape[0]):
         img_path = file_paths[i]
-        img_PIL = Image.open(img_path)
+        img_PIL = Image.open(os.path.join(direc,img_path))
         img = np.asarray(img_PIL)
         xTest[i] = img
     xTest = imagenet_utils.preprocess_input(xTest)

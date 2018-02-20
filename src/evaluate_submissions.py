@@ -207,7 +207,7 @@ def run_defense(defense_dir, offense_dir, output_dir):
 
     #Load metadata from their submission
     metadata = json.load(open(os.path.join(defense_dir,'metadata.json')))
-    outputname = '/output/predictions.csv'
+    outputname = '/output/labels.csv'
     
 
     cmd = ['sudo', 'chown','1005:1005',defense_dir]
@@ -296,7 +296,7 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         # run defense on these images
         #----------------------------------------
         run_defense(def_dir, def_in_dir, def_out_dir)
-        defense_files, Y_hat = load_estimates(os.path.join(ref_dir, ESTIMATES_FILE))
+        defense_files, Y_hat = load_estimates(os.path.join(def_out_dir, ESTIMATES_FILE))
 
         #----------------------------------------
         # evaluate performance
@@ -308,7 +308,7 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
 
             # top-1 accuracy; 1 denotes a success by the defense
             idx = defense_files.index(fn)
-            y_hat_i = Y_hat[idx,0]
+            y_hat_i = Y_hat[idx][0]
             score[ii] = 1 if (y_hat_i == y_i) else 0
 
         results.append((COMPETITION_UNTARGETED, attacker_id, defender_id, epsilon) + tuple(score))
