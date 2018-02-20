@@ -33,4 +33,4 @@ if [ ! -d $OUTPUT_DIR ]; then
 fi
 
 # zip up the submission
-zip -r sample_attack_fgm.zip $OUTPUT_DIR
+cd $OUTPUT_DIR && zip -r ../sample_attack_fgm.zip ./*
