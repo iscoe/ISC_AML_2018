@@ -19,24 +19,22 @@ OUTPUT_DIR=./Evaluation_Output
 default :
 	echo "Please pick an explicit target!"
 
-
-# Note: the mkdir calls here are to help out evaluation; if you are a 
-#       performer/participant in competition, you can ignore this.
-baseline-attack:
+baseline-attack :
 	cd ./attacks/sample_attack && ./run_attack.sh
-	
+
 
 baseline-defense :
 	cd ./defenses/sample_defense_submission/ && ./defense_zip.sh 
-	
+
 
 dummy-framework:
-	mkdir -p $(SUBMISSION_DIR)/team_b/attack
-	mkdir -p $(SUBMISSION_DIR)/team_b/defense
 	mkdir -p $(SUBMISSION_DIR)/team_a/attack
 	mkdir -p $(SUBMISSION_DIR)/team_a/defense
+	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(SUBMISSION_DIR)/team_a/defense
+	cp ./attacks/sample_attack/sample_attack_fgm.zip $(SUBMISSION_DIR)/team_a/attack
+	mkdir -p $(SUBMISSION_DIR)/team_b/attack
+	mkdir -p $(SUBMISSION_DIR)/team_b/defense
 	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(SUBMISSION_DIR)/team_b/defense
-	
 
 eval :
 	python evaluate_submissions.py $(SUBMISSION_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) .005 .01
