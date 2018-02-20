@@ -286,7 +286,7 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         #----------------------------------------
         # prepare the attack images for this value of epsilon
         #----------------------------------------
-        input_dir = os.path.join(raw_dir, str(epsilon))
+        input_dir = os.path.join(raw_dir, "%d" % epsilon)
         prepare_ae(input_dir, def_in_dir, ref_dir, f_con)
         if not _are_images_equivalent_p(input_dir, def_in_dir):
             _warning('input images did not satisfy constraints!!  They have been clipped accordingly.')
