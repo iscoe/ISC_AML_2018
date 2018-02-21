@@ -1,3 +1,4 @@
+
 """ Evaluate AE attacks and defenses.
 
  This script runs all attack submissions vs all defense submission and
@@ -124,9 +125,9 @@ def enforce_ell_infty_constraint(x_ae, x_orig, epsilon, clip_min=0, clip_max=255
     x_orig  : a numpy tensor corresponding to the original image
     epsilon : the perturbation constraint (scalar)
     """
-    delta = x_orig - x_ae
+    delta = np.subtract(x_ae,x_orig, dtype=np.int8)
     delta = np.clip(delta, -epsilon, epsilon)
-    return np.clip(x_orig + delta, clip_min, clip_max)
+    return np.clip(x_orig + delta, clip_min, clip_max).astype(np.uint8)
 
 
 
@@ -338,7 +339,7 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
             y_hat_i = Y_hat[idx][0]
             score[ii] = 1 if (y_hat_i == y_i) else 0
 
-        # TODO: add debug statemetn to show score for this pair (for debugging)
+        # TODO: add debug statement to show score for this pair (for debugging)
         results.append((COMPETITION_UNTARGETED, attacker_id, defender_id, epsilon) + tuple(score))
 
     cols = ['competition', 'attacker-id', 'defender-id', 'epsilon'] + test_files

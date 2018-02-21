@@ -1,5 +1,10 @@
 import os
+import sys
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+sys.path.append('/home/fendlnm1/Fendley/adversarial/ISC_AML_2018/src')
+from evaluate_submissions import enforce_ell_infty_constraint
+
+
 import json
 import numpy as np
 from PIL import Image
@@ -99,8 +104,10 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
         
     for ep in eps:
         print("[Info] Attacking epsilon " + ep)
-        fgsm_params = {'eps': (float(ep)/255.0)-(0.01)}
         ep = int(ep)
+        ep_float = float(ep)/255.0 
+        fgsm_params = {'eps':ep_float}
+        
         adv_x = fgsm.generate(x, **fgsm_params)
         eval_par = {'batch_size': 32}
         counter = 0
@@ -109,19 +116,23 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
         if not os.path.exists(save_folder_eps):
             os.mkdir(save_folder_eps)
         for i in range(len(x_input)):
-            img_clean = np.expand_dims(x_input[i], axis=0)
-            if ep == 0:
-                img = img_clean
-            else:
-                img = adv_x.eval(session=sess, feed_dict={x:img_clean})
+            img_clean = np.expand_dims(x_input[i], axis=0)    
+            img = adv_x.eval(session=sess, feed_dict={x:img_clean})
             
             if y_input is not None:
                 cat = y_input[i]
                 cat_input = np.expand_dims(cat, axis=0)
-            
-          
+
             img_out = prepare_image_output(img)
-      
+
+            ### Debugging the image clipping
+            if ep != 0:
+                img_clean_out = prepare_image_output(img_clean)
+                img_out_crop = enforce_ell_infty_constraint(img_out, img_clean_out, ep)
+
+                if not np.array_equal(img_out_crop, img_out):
+                    print("Clipping was required")
+                    img_out = img_out_crop
 
             img_PIL = Image.fromarray(img_out, 'RGB')
             img_PIL.save(os.path.join(save_folder_eps,filenames[i]))
@@ -143,6 +154,8 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
                 labels_np = np.asarray(labels_all)
                 np.savetxt(os.path.join(save_folder,'labels.csv'), labels_np, fmt='%s', delimiter=',')
       
+
+
         
 
 def prep_filelist(data_dir):
