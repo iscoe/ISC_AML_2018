@@ -8,4 +8,5 @@ For more details or if you have questions, comments, etc. please visit us on [Co
 ## Quick Start
 
 - The [Makefile](./src/Makefile) provides examples of how one can create submissions (for attack and defense)
-- The [evaluation script](./src/evaluate_submissions.py) shows how we intend to run the attacks and defenses.  You can stand up your own local evaluation if desired.
+- Baseline [attacks](src/attacks) and [defenses](src/defenses) are provided.  Feel free to use these as starting points for your submissions!  Some of these may even appear as "competitors"...
+- The [evaluation script](./src/evaluate_submissions.py) shows how we intend to run the attacks and defenses.  You can use this to stand up a local simulated evaluation environment if desired.
