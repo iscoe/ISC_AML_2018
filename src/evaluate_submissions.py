@@ -16,6 +16,11 @@
      with tensorflow+keras and Anaconda Python 3 if one is
      interested in replicating this environment locally. 
 
+
+ TODOs (in addition to inline):
+    1.  Add I-FGM attack baseline
+    2.  Add simple pre-processing defense (Gaussian noise)
+    3.  Add no-op attack (ie. just zip up test files).
 """
 
 
@@ -333,10 +338,12 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
             y_hat_i = Y_hat[idx][0]
             score[ii] = 1 if (y_hat_i == y_i) else 0
 
+        # TODO: add debug statemetn to show score for this pair (for debugging)
         results.append((COMPETITION_UNTARGETED, attacker_id, defender_id, epsilon) + tuple(score))
 
     cols = ['competition', 'attacker-id', 'defender-id', 'epsilon'] + test_files
     return pd.DataFrame(results, columns=cols)
+
 
 def run_queries_vs_defenses(submission_dir):
     """ Runs each attack vs each defense.
@@ -420,7 +427,6 @@ def compute_metrics(results, out_dir):
     """
 
     # Create output subdirectories (if needed)
-    # TODO: update these as needed for actual directory structure
     out_dir_attack = os.path.join(out_dir, 'attack')
     if not os.path.isdir(out_dir_attack):
         os.makedirs(out_dir_attack)
@@ -437,6 +443,8 @@ def compute_metrics(results, out_dir):
     results_def = results.reset_index().groupby("defender-id").mean()
     results_def = results_def.drop(['epsilon', 'index'], axis=1)
 
+    # TODO: replace minus sign with an operation that uses n_images to compute
+    #       the total number of missed classificdations; then take the mean.
     results_att = -results.reset_index().groupby("attacker-id").mean()
     results_att = results_att.drop(['epsilon', 'index'], axis=1)
 
