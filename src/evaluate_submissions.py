@@ -32,6 +32,7 @@ import sys
 import time
 import datetime
 import os
+os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import glob
 import shutil
 import tempfile
@@ -257,27 +258,6 @@ def run_defense(defense_dir, offense_dir, output_dir):
     subprocess.call(cmd)
 
 
-def run_one_query_vs_one_defense(query_id, query_zip, defender_id, defense_zip):
-    """ Runs a single query against a single defense.
-    """
-    
-
-    query_dir = tempfile.mkdtemp()
-    with ZipFile(query_zip, 'r') as zf:
-        zf.extractall(path=query_dir)
-
-    # Extract defense submission (executable code)
-    def_dir = tempfile.mkdtemp()
-    with ZipFile(defense_zip, 'r') as zf:
-        zf.extractall(path=def_dir)
-
-    query_files = [os.path.basename(x) for x in _image_files(query_dir)]  # list of files created by attacker
-    def_out_dir = tempfile.mkdtemp()      # output from defense goes here
-
-    run_defense(def_dir, query_dir, def_out_dir)
-
-    return np.genfromtxt(os.path.join(def_out_dir,ESTIMATES_FILE),dtype='str', delimiter=',')
-
 #-------------------------------------------------------------------------------
 #  Evauation (i.e. run attack vs defense)
 #-------------------------------------------------------------------------------
@@ -346,10 +326,32 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
     return pd.DataFrame(results, columns=cols)
 
 
+
+def run_one_query_vs_one_defense(query_id, query_zip, defender_id, defense_zip):
+    """ Runs a single query against a single defense.
+    """
+    query_dir = tempfile.mkdtemp()
+    with ZipFile(query_zip, 'r') as zf:
+        zf.extractall(path=query_dir)
+
+    # Extract defense submission (executable code)
+    def_dir = tempfile.mkdtemp()
+    with ZipFile(defense_zip, 'r') as zf:
+        zf.extractall(path=def_dir)
+
+    query_files = [os.path.basename(x) for x in _image_files(query_dir)]  # list of files created by attacker
+    def_out_dir = tempfile.mkdtemp()      # output from defense goes here
+
+    run_defense(def_dir, query_dir, def_out_dir)
+    results = np.genfromtxt(os.path.join(def_out_dir,ESTIMATES_FILE),dtype='str', delimiter=',')
+    return results[:,:2]
+
+
 def run_queries_vs_defenses(submission_dir):
     """ Runs each attack vs each defense.
     """
-    all_results = []
+    all_results = {}
+    all_results['defense_id'] = []
 
     for query_id in _all_team_names(submission_dir):
         #----------------------------------------
@@ -376,8 +378,18 @@ def run_queries_vs_defenses(submission_dir):
             # run attack vs defense and store result
             #----------------------------------------
             try:
-                result_this_pair = run_one_query_vs_one_defense(query_id, query_zip, defender_id, defense_zip)
-                all_results.append(result_this_pair)
+                results_this_pair = run_one_query_vs_one_defense(query_id, query_zip, defender_id, defense_zip)
+
+                all_results['defense_id'].append(defender_id)
+
+                for i in range(results_this_pair.shape[0]):
+                    img_name = results_this_pair[i][0]
+                    label = results_this_pair[i][1]
+                    if img_name not in all_results.keys():
+                        all_results[img_name] = []
+                    all_results[img_name].append(label)
+
+
             except Exception as ex:
                 _warning('%s vs %s failed! %s' % (query_id, defender_id, str(ex)))
 
@@ -415,12 +427,34 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
             #----------------------------------------
             try:
                 result_this_pair = run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_zip, truth_dir, epsilon_values)
-                all_results.append(result_this_pair)
+                if all_results[0] is None:
+                    all_results.append(result_this_pair)
             except Exception as ex:
                 _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
 
-    return pd.concat(all_results)
+    return np.asarray(all_results)
 
+
+def output_query(results, out_dir):
+
+    cols = ['img_name']
+    for val in results['defense_id']:
+        cols.append(val)
+
+
+    csv_return = np.expand_dims(np.asarray(cols), axis=0)
+    for img_name in results.keys():
+        if img_name != 'img_name':
+            ret = [img_name]
+            for val in results[img_name]:
+                ret.append(val)
+            ret_arr = np.expand_dims(np.asarray(ret),axis=0)
+            csv_return = np.concatenate((csv_return, ret_arr), axis=0)
+
+    np.savetxt(os.path.join(out_dir,'results.csv'),csv_return,fmt='%s',delimiter=',')
+    pdb.set_trace()
+    
+        
 
 
 def compute_metrics(results, out_dir):
@@ -518,6 +552,15 @@ if __name__ == "__main__":
         results = run_queries_vs_defenses(submission_dir)
         runtime = time.time() - tic
         _info('evaluation ran in %0.2f minutes' % (runtime/60.))
+
+        out_dir_query = os.path.join(output_dir_ts,'query')
+        if not os.path.exists(out_dir_query):
+            os.makedirs(out_dir_query)
+        output_query(results, out_dir_query)
+        
+
+
+
 
         #-----------------------------------------
         # save feedback
