@@ -7,4 +7,4 @@ If you have questions, comments, etc. please visit us on [Cooler](https://cooler
 
 ## Quick Start
 
-- [.src/Makefile] provides examples of how one can create submissions (for attack and defense)
+- The [Makefile](./src/Makefile) provides examples of how one can create submissions (for attack and defense)
