@@ -27,6 +27,9 @@ OUTPUT_DIR=./Evaluation_Output
 default :
 	echo "Please pick an explicit target!"
 
+iter-attack :
+	cd ./attacks/IFGM_attack && ./run_attack.sh $(GROUND_TRUTH_DIR)
+
 baseline-attack :
 	cd ./attacks/sample_attack && ./run_attack.sh $(GROUND_TRUTH_DIR)
 
@@ -47,14 +50,14 @@ dummy-framework :
 	echo "creating team B"
 	mkdir -p $(TEAM_DIR)/team_b/attack
 	mkdir -p $(TEAM_DIR)/team_b/defense	
-	cp ./attacks/sample_attack/sample_attack_fgm.zip $(TEAM_DIR)/team_b/attack
+	cp ./attacks/IFGM_attack/sample_attack_ifgm.zip $(TEAM_DIR)/team_b/attack
 	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_b/defense
 	echo "creating team C"
 	mkdir -p $(TEAM_DIR)/team_c/attack
 	mkdir -p $(TEAM_DIR)/team_c/defense
 	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_c/defense
 
-dummy : baseline-attack baseline-defense dummy-framework eval
+dummy : baseline-attack iter-attack baseline-defense dummy-framework eval
 
 eval :
 	python evaluate_submissions.py $(TEAM_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 1 5
