@@ -2,7 +2,7 @@
 
 Software for the [ISC 2018 adversarial machine learning (AML) challenge](https://challenges.jhuapl.edu/c/aml/).
 
-For more details or if you have questions, comments, etc. please visit us on [Cooler](https://cooler.jhuapl.edu/groups/profile/300279/isc-adversarial-machine-learning-challenge)!
+For more details about the challenge (or if you have questions, comments, etc.) please visit us on [Cooler](https://cooler.jhuapl.edu/groups/profile/300279/isc-adversarial-machine-learning-challenge)!
 
 
 ## Quick Start
