@@ -7,6 +7,6 @@ For more details about the challenge (or if you have questions, comments, etc.) 
 
 ## Quick Start
 
-- The [Makefile](./src/Makefile) provides examples of how one can create submissions (for attack and defense)
 - Baseline [attacks](src/attacks) and [defenses](src/defenses) are provided.  Feel free to use these as starting points for your submissions!  Some of these may even appear as "competitors"...
 - The [evaluation script](./src/evaluate_submissions.py) shows how we intend to run the attacks and defenses.  You can use this to stand up a local simulated evaluation environment if desired.  Note that we are using Python 3 on a Linux machine equipped with nvidia-docker.
+- The [Makefile](./src/Makefile) provides examples of how to run all of these things.
