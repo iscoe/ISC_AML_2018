@@ -482,7 +482,7 @@ def compute_metrics(results, out_dir):
     _info('Computing metrics for %d images' % n_images)
 
     #--------------------------------------------------
-    # brute force calculation of results;
+    # brute force calculation of results (per-epsilon);
     # inelegant, but straightforward to understand.
     #--------------------------------------------------
     all_epsilon = pd.unique(results[EPSILON_COL]);    all_epsilon.sort()
@@ -506,9 +506,27 @@ def compute_metrics(results, out_dir):
         df = pd.DataFrame(X[:,:,idx], index=all_attackers, columns=all_defenders)
         df.to_csv(fn)
 
-    # TODO: aggregate result here!
-    X_net = np.sum(X, axis=2) / float(n_images * len(all_epsilon))
+    #--------------------------------------------------
+    # aggregate results
+    #--------------------------------------------------
+    X_net = np.sum(X, axis=2) / float(len(all_epsilon))
+    fn = os.path.join(out_dir, 'attack_vs_defense.csv')
+    df = pd.DataFrame(X_net, index=all_attackers, columns=all_defenders)
+    df.to_csv(fn)
 
+    # ranks participants in each contest
+    attack_score = np.nanmean(X_net, axis=1)
+    df_attack = pd.DataFrame(attack_score, index=all_attackers, columns=('score',))
+    df_attack.sort_values(by='score', ascending=True)
+    df_attack.to_csv(os.path.join(out_dir, 'attack_rank.csv'))
+    _info('Attack results:\n' + str(df_attack))
+
+    defense_score = np.nanmean(X_net, axis=0)
+    df_defense = pd.DataFrame(defense_score, index=all_defenders, columns=('score',))
+    df_defense.sort_values(by='score', ascending=False)
+    df_defense.to_csv(os.path.join(out_dir, 'defense_rank.csv'))
+    _info('Defense results:\n' + str(df_defense))
+    
 
 
 #-------------------------------------------------------------------------------
