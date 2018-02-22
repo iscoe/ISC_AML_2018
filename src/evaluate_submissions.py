@@ -135,9 +135,9 @@ def enforce_ell_infty_constraint(x_ae, x_orig, epsilon, clip_min=0, clip_max=255
     x_orig  : a numpy tensor corresponding to the original image
     epsilon : the perturbation constraint (scalar)
     """
-    delta = np.subtract(x_ae,x_orig, dtype=np.int8)
+    delta = x_ae - x_orig
     delta = np.clip(delta, -epsilon, epsilon)
-    return np.clip(x_orig + delta, clip_min, clip_max).astype(np.uint8)
+    return np.clip(x_orig + delta, clip_min, clip_max)
 
 
 

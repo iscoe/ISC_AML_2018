@@ -1,9 +1,6 @@
 import os
 import sys
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-sys.path.append('/home/fendlnm1/Fendley/adversarial/ISC_AML_2018/src')
-from evaluate_submissions import enforce_ell_infty_constraint
-
 
 import json
 import numpy as np
@@ -124,16 +121,8 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
                 cat_input = np.expand_dims(cat, axis=0)
 
             img_out = prepare_image_output(img)
-
-            ### Debugging the image clipping
-            if ep != 0:
-                img_clean_out = prepare_image_output(img_clean)
-                img_out_crop = enforce_ell_infty_constraint(img_out, img_clean_out, ep)
-
-                if not np.array_equal(img_out_crop, img_out):
-                    print("Clipping was required")
-                    img_out = img_out_crop
-
+            img_out = np.clip(img_out, 0, 255)
+            
             img_PIL = Image.fromarray(img_out, 'RGB')
             img_PIL.save(os.path.join(save_folder_eps,filenames[i]))
 
@@ -221,8 +210,7 @@ def prepare_image_output(image):
     img[..., 2] += mean[2]
     
     img = img[..., ::-1]
-    
-    return np.squeeze(img.astype(np.uint8))
+    return np.squeeze(img).astype(np.int16)
 
 
 def prep_adv_set(model, filepaths, num_adv=1000, batch_size=256):

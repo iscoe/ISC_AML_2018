@@ -40,6 +40,7 @@ baseline-defense :
 
 dummy-framework :
 	echo "creating ground truth"
+	mkdir $(SIM_DIR)
 	mkdir -p $(SIM_DIR)/ground_truth
 	cp $(GROUND_TRUTH_DIR)/* $(SIM_DIR)/ground_truth
 	echo "creating team A"
@@ -57,10 +58,15 @@ dummy-framework :
 	mkdir -p $(TEAM_DIR)/team_c/defense
 	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_c/defense
 
-dummy : baseline-attack iter-attack baseline-defense dummy-framework eval
+demo : baseline-attack iter-attack baseline-defense dummy-framework eval
 
 eval :
 	python evaluate_submissions.py $(TEAM_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 1 5
 
 query :
 	python evaluate_submissions.py $(TEAM_DIR) query $(OUTPUT_DIR)
+
+clean:
+	rm -r attacks/sample_attack/submission_run
+	rm *.pyc
+	rm -rf $(SIM_DIR)

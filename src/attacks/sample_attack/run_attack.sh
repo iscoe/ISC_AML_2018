@@ -29,7 +29,7 @@ fi
 # run attack! (if we haven't already)
 #-------------------------------------------------------------------------------
 if [ ! -d $OUTPUT_DIR ]; then
-    PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR 0 1 5
+    PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR 1 5
 fi
 
 # zip up the submission
