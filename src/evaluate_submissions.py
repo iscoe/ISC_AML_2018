@@ -499,7 +499,7 @@ def compute_metrics(results, out_dir):
         X[att_idx, def_idx, eps_idx] = score
 
     #--------------------------------------------------
-    # write result matrices
+    # write (per-epsilon) result matrices
     #--------------------------------------------------
     for idx, epsilon in enumerate(all_epsilon):
         fn = os.path.join(out_dir, 'attack_vs_defense_eps_%d.csv' % epsilon)
