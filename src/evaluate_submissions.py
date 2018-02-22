@@ -52,9 +52,18 @@ import pdb
 
 
 ESTIMATES_FILE = 'labels.csv'            # name of file containing ground truth within test images directory
-COMPETITION_UNTARGETED = "untargeted"    # tag identifying this particular competition
 QUERY = True
 
+
+#-------------------------------------------------------------------------------
+# columns and constants for our data table
+#-------------------------------------------------------------------------------
+EPSILON_COL='epsilon'
+DEFENDER_COL='defender-id'
+ATTACKER_COL='attacker-id'
+COMPETITION_COL='competition'
+
+COMPETITION_UNTARGETED = "untargeted"    # tag identifying this particular competition
 
 
 #-------------------------------------------------------------------------------
@@ -322,7 +331,7 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         # TODO: add debug statement to show score for this pair (for debugging)
         results.append((COMPETITION_UNTARGETED, attacker_id, defender_id, epsilon) + tuple(score))
 
-    cols = ['competition', 'attacker-id', 'defender-id', 'epsilon'] + test_files
+    cols = [COMPETITION_COL, ATTACKER_COL, DEFENDER_COL, EPSILON_COL] + test_files
     return pd.DataFrame(results, columns=cols)
 
 
@@ -345,6 +354,7 @@ def run_one_query_vs_one_defense(query_id, query_zip, defender_id, defense_zip):
     run_defense(def_dir, query_dir, def_out_dir)
     results = np.genfromtxt(os.path.join(def_out_dir,ESTIMATES_FILE),dtype='str', delimiter=',')
     return results[:,:2]
+
 
 
 def run_queries_vs_defenses(submission_dir):
@@ -396,6 +406,7 @@ def run_queries_vs_defenses(submission_dir):
     return (all_results)
 
 
+
 def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
     """ Runs each attack vs each defense.
     """
@@ -427,12 +438,12 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
             #----------------------------------------
             try:
                 result_this_pair = run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_zip, truth_dir, epsilon_values)
-                if all_results[0] is None:
-                    all_results.append(result_this_pair)
+                all_results.append(result_this_pair)
             except Exception as ex:
                 _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
 
-    return np.asarray(all_results)
+    return pd.concat(all_results)
+
 
 
 def output_query(results, out_dir):
@@ -458,46 +469,50 @@ def output_query(results, out_dir):
 
 
 def compute_metrics(results, out_dir):
-    """  Summarizes overall results and saves to .csv.
+    """  Calculates overall performance and saves results to .csv files.
     """
+    def index_in(item, arr):
+        "Returns the (presumed unique) index of item in the np.array arr."
+        idx = np.flatnonzero(item == arr)
+        assert(len(idx) == 1)
+        return idx[0]
 
-    # Create output subdirectories (if needed)
-    out_dir_attack = os.path.join(out_dir, 'attack')
-    if not os.path.isdir(out_dir_attack):
-        os.makedirs(out_dir_attack)
-
-    out_dir_defense = os.path.join(out_dir, 'defense')
-    if not os.path.isdir(out_dir_defense):
-        os.makedirs(out_dir_defense)
 
     n_images = results.shape[1] - 4
+    _info('Computing metrics for %d images' % n_images)
 
-    #----------------------------------------
-    # compute average performance (per test image)
-    #----------------------------------------
-    results_def = results.reset_index().groupby("defender-id").mean()
-    results_def = results_def.drop(['epsilon', 'index'], axis=1)
+    #--------------------------------------------------
+    # brute force calculation of results;
+    # inelegant, but straightforward to understand.
+    #--------------------------------------------------
+    all_epsilon = pd.unique(results[EPSILON_COL]);    all_epsilon.sort()
+    all_attackers = pd.unique(results[ATTACKER_COL]); all_attackers.sort()
+    all_defenders = pd.unique(results[DEFENDER_COL]); all_defenders.sort()
 
-    # TODO: replace minus sign with an operation that uses n_images to compute
-    #       the total number of missed classificdations; then take the mean.
-    results_att = -results.reset_index().groupby("attacker-id").mean()
-    results_att = results_att.drop(['epsilon', 'index'], axis=1)
+    X = np.nan * np.ones((len(all_attackers), len(all_defenders), len(all_epsilon)))
 
-    results_def.to_csv(os.path.join(out_dir_defense, 'details.csv'), header=True)
-    results_att.to_csv(os.path.join(out_dir_attack, 'details.csv'), header=True)
+    for idx, row in results.iterrows():
+        eps_idx = index_in(row[EPSILON_COL], all_epsilon)
+        att_idx = index_in(row[ATTACKER_COL], all_attackers)
+        def_idx = index_in(row[DEFENDER_COL], all_defenders)
+        score = row.iloc[4:].sum()
+        X[att_idx, def_idx, eps_idx] = score
 
-    #----------------------------------------
-    # compute net performance (avg. across all test images)
-    #----------------------------------------
-    results_def_agg = results_def.mean(axis=1)
-    results_att_agg = results_att.mean(axis=1)
+    #--------------------------------------------------
+    # write result matrices
+    #--------------------------------------------------
+    for idx, epsilon in enumerate(all_epsilon):
+        fn = os.path.join(out_dir, 'attack_vs_defense_eps_%d.csv' % epsilon)
+        df = pd.DataFrame(X[:,:,idx], index=all_attackers, columns=all_defenders)
+        df.to_csv(fn)
 
-    results_def_agg.to_csv(os.path.join(out_dir_defense, "scores.csv"), header=True)
-    results_att_agg.to_csv(os.path.join(out_dir_attack, "scores.csv"), header=True)
+    # TODO: aggregate result here!
+    X_net = np.sum(X, axis=2) / float(n_images * len(all_epsilon))
+
 
 
 #-------------------------------------------------------------------------------
-#-------------------------------------------------------------------------------
+
 if __name__ == "__main__":
     #----------------------------------------
     # command line parameters
@@ -557,16 +572,3 @@ if __name__ == "__main__":
         if not os.path.exists(out_dir_query):
             os.makedirs(out_dir_query)
         output_query(results, out_dir_query)
-        
-
-
-
-
-        #-----------------------------------------
-        # save feedback
-        #-----------------------------------------
-
-
-
-
-
