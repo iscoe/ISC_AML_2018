@@ -135,9 +135,10 @@ def enforce_ell_infty_constraint(x_ae, x_orig, epsilon, clip_min=0, clip_max=255
     x_orig  : a numpy tensor corresponding to the original image
     epsilon : the perturbation constraint (scalar)
     """
-    delta = x_ae - x_orig
+    delta = np.subtract(x_ae, x_orig, dtype=np.int16)
     delta = np.clip(delta, -epsilon, epsilon)
-    return np.clip(x_orig + delta, clip_min, clip_max)
+    #print(np.array_equal(x_ae, x_orig + delta))
+    return np.clip(x_orig + delta, clip_min, clip_max).astype(np.uint8)
 
 
 
@@ -169,7 +170,7 @@ def prepare_ae(ae_directory, tgt_directory, ref_directory, f_constraint):
         # load images and enforce perturbation constraint(s)
         x_ae = np.array(Image.open(ae_file), dtype=np.uint8)
         x_ref = np.array(Image.open(ref_file), dtype=np.uint8)
-        x_eval = f_constraint(x_ae, x_ref).astype(np.uint8)  # enforce constraint
+        x_eval = f_constraint(x_ae, x_ref)  # enforce constraint
 
         # save admissible image
         out_file = os.path.join(tgt_directory, img_name)
@@ -183,9 +184,9 @@ def _are_images_equivalent_p(dir_a, dir_b):
     """
     for filename in _image_files(dir_a):
         _, fn = os.path.split(filename)
-        img_a = Image.open(filename)
-        img_b = Image.open(os.path.join(dir_b, fn))
-        if np.any(np.array(img_a) != np.array(img_b)):
+        img_a = np.array(Image.open(filename), dtype=np.uint8)
+        img_b = np.array(Image.open(os.path.join(dir_b, fn)), dtype=np.uint8)
+        if not np.array_equal(img_a, img_b):
             return False
     return True
 
@@ -499,7 +500,7 @@ def compute_metrics(results, out_dir):
         X[att_idx, def_idx, eps_idx] = score
 
     #--------------------------------------------------
-    # write (per-epsilon) result matrices
+    # write result matrices
     #--------------------------------------------------
     for idx, epsilon in enumerate(all_epsilon):
         fn = os.path.join(out_dir, 'attack_vs_defense_eps_%d.csv' % epsilon)

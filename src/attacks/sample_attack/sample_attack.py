@@ -1,6 +1,9 @@
 import os
 import sys
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
+# sys.path.append('/home/fendlnm1/Fendley/adversarial/ISC_AML_2018/src')
+# from evaluate_submissions import enforce_ell_infty_constraint
+
 
 import json
 import numpy as np
@@ -58,7 +61,7 @@ def load_images(data_dir):
         if img.endswith('.png'):
             img_path = os.path.join(data_dir, img)
             img_pil = Image.open(img_path)
-            x_input = np.asarray(img_pil).astype(np.float32)
+            x_input = np.asarray(img_pil,dtype=np.uint8)
             x_test = imagenet_preprocessing(x_input)
             img_list.append(x_test)
             filenames.append(img)
@@ -121,8 +124,16 @@ def adv_fgsm(data_dir, save_folder, model,filenames, x_input, y_input=None,eps=[
                 cat_input = np.expand_dims(cat, axis=0)
 
             img_out = prepare_image_output(img)
-            img_out = np.clip(img_out, 0, 255)
             
+            # ### Debugging the image clipping
+            # if ep != 0:
+            #     img_clean_out = prepare_image_output(img_clean)
+            #     img_out_crop = enforce_ell_infty_constraint(img_out, img_clean_out, ep)
+
+            #     if not np.array_equal(img_out_crop, img_out):
+            #         print("[Info]: Clipping was required")
+            #         img_out = img_out_crop
+
             img_PIL = Image.fromarray(img_out, 'RGB')
             img_PIL.save(os.path.join(save_folder_eps,filenames[i]))
 
@@ -181,7 +192,7 @@ def imagenet_preprocessing(image):
 
     image: the image to move from [0,255] to [-1,1]
     """
-    img = image.copy()
+    img = image.copy().astype(np.float32)
     mean = [103.939, 116.779, 123.68]
 
     img = img[..., ::-1]
@@ -210,7 +221,8 @@ def prepare_image_output(image):
     img[..., 2] += mean[2]
     
     img = img[..., ::-1]
-    return np.squeeze(img).astype(np.int16)
+    img = np.clip(img, 0, 255)
+    return np.squeeze(img).astype(np.uint8)
 
 
 def prep_adv_set(model, filepaths, num_adv=1000, batch_size=256):

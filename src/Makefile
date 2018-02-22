@@ -18,6 +18,7 @@
 SIM_DIR=./simulated_environment
 TEAM_DIR=$(SIM_DIR)/submissions
 GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
+ATTACK_ZIP_DIR=attacks/sample_attack/submission_run
 #GROUND_TRUTH_DIR=/home/fendlnm1/Fendley/adversarial/ISC_AML_2018/image_sets/FMOW_1000_CORRECT_2
 
 OUTPUT_DIR=./Evaluation_Output
@@ -40,7 +41,6 @@ baseline-defense :
 
 dummy-framework :
 	echo "creating ground truth"
-	mkdir $(SIM_DIR)
 	mkdir -p $(SIM_DIR)/ground_truth
 	cp $(GROUND_TRUTH_DIR)/* $(SIM_DIR)/ground_truth
 	echo "creating team A"
@@ -51,7 +51,6 @@ dummy-framework :
 	echo "creating team B"
 	mkdir -p $(TEAM_DIR)/team_b/attack
 	mkdir -p $(TEAM_DIR)/team_b/defense	
-	cp ./attacks/IFGM_attack/sample_attack_ifgm.zip $(TEAM_DIR)/team_b/attack
 	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_b/defense
 	echo "creating team C"
 	mkdir -p $(TEAM_DIR)/team_c/attack
@@ -66,7 +65,5 @@ eval :
 query :
 	python evaluate_submissions.py $(TEAM_DIR) query $(OUTPUT_DIR)
 
-clean:
-	rm -r attacks/sample_attack/submission_run
-	rm *.pyc
-	rm -rf $(SIM_DIR)
+
+
