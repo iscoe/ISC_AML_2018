@@ -3,9 +3,9 @@
 #-------------------------------------------------------------------------------
 # update paths as needed for your local configuration
 #-------------------------------------------------------------------------------
-#DATA_DIR='/home/neilf/Fendley/adversarial/ISC_AML_2018/image_sets/val_prepped'
 DATA_DIR=$1
 OUTPUT_DIR='./submission_run'
+ATTACK=$2
 
 #-------------------------------------------------------------------------------
 # dependencies
@@ -18,6 +18,7 @@ if [ ! -d './cleverhans' ]; then
     git clone https://github.com/tensorflow/cleverhans.git
 fi
 
+
 # weights for the model we are attacking
 if [ ! -f cnn_image_only.model ]; then
     wget https://github.com/fMoW/baseline/releases/download/paper/cnn_image_only.model.zip -O cnn_image_only.model.zip
@@ -25,12 +26,17 @@ if [ ! -f cnn_image_only.model ]; then
     rm -f cnn_image_only.model.zip
 fi
 
+
 #-------------------------------------------------------------------------------
-# run attack! (if we haven't already)
+# run attack 
 #-------------------------------------------------------------------------------
-if [ ! -d $OUTPUT_DIR ]; then
-    PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR 1 5
+
+# first, delete any old output from previous runs.
+if [ -d $OUTPUT_DIR ]; then
+    \rm -rf $OUTPUT_DIR
 fi
+
+PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR $ATTACK 0 1 3
 
 # zip up the submission
 cd $OUTPUT_DIR && zip -r ../sample_attack_fgm.zip ./*
