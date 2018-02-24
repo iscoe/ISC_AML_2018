@@ -17,11 +17,6 @@
      with tensorflow+keras and Anaconda Python 3 if one is
      interested in replicating this environment locally. 
 
-
- TODOs (in addition to inline):
-    1.  Add I-FGM attack baseline
-    2.  Add simple pre-processing defense (Gaussian noise)
-    3.  Add no-op attack (ie. just zip up test files).
 """
 
 
@@ -136,6 +131,8 @@ def enforce_ell_infty_constraint(x_ae, x_orig, epsilon, clip_min=0, clip_max=255
     epsilon : the perturbation constraint (scalar)
     """
     delta = np.subtract(x_ae, x_orig, dtype=np.int16)
+    if np.any(np.abs(delta) > epsilon):
+        pdb.set_trace() # TEMP
     delta = np.clip(delta, -epsilon, epsilon)
     #print(np.array_equal(x_ae, x_orig + delta))
     return np.clip(x_orig + delta, clip_min, clip_max).astype(np.uint8)
@@ -484,11 +481,11 @@ def compute_metrics(results, out_dir):
 
     #--------------------------------------------------
     # brute force calculation of results (per-epsilon);
-    # inelegant, but straightforward to understand.
+    # inelegant, but straightforward.
     #--------------------------------------------------
-    all_epsilon = pd.unique(results[EPSILON_COL]);    all_epsilon.sort()
-    all_attackers = pd.unique(results[ATTACKER_COL]); all_attackers.sort()
-    all_defenders = pd.unique(results[DEFENDER_COL]); all_defenders.sort()
+    all_epsilon = pd.unique(results[EPSILON_COL]);     all_epsilon.sort()
+    all_attackers = pd.unique(results[ATTACKER_COL]);  all_attackers.sort()
+    all_defenders = pd.unique(results[DEFENDER_COL]);  all_defenders.sort()
 
     X = np.nan * np.ones((len(all_attackers), len(all_defenders), len(all_epsilon)))
 
@@ -533,9 +530,7 @@ def compute_metrics(results, out_dir):
 #-------------------------------------------------------------------------------
 
 if __name__ == "__main__":
-    #----------------------------------------
     # command line parameters
-    #----------------------------------------
     submission_dir = sys.argv[1]
     truth_dir = sys.argv[2]
     output_dir = sys.argv[3]
@@ -572,9 +567,7 @@ if __name__ == "__main__":
         fn = os.path.join(output_dir_ts, 'results.pkl')
         results.to_pickle(fn)
 
-        #----------------------------------------
         # generate feedback for performers
-        #----------------------------------------
         compute_metrics(results, output_dir_ts)
 
     else:
@@ -591,3 +584,4 @@ if __name__ == "__main__":
         if not os.path.exists(out_dir_query):
             os.makedirs(out_dir_query)
         output_query(results, out_dir_query)
+
