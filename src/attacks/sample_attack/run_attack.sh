@@ -43,5 +43,7 @@ fi
 
 PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR $ATTACK $EPSILONS
 
-# zip up the submission
+#-------------------------------------------------------------------------------
+# Create a corresponding submission.
+#-------------------------------------------------------------------------------
 cd $OUTPUT_DIR && zip -r ../sample_attack_$ATTACK.zip ./*
