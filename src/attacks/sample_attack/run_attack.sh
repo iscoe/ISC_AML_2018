@@ -10,7 +10,7 @@
 DATA_DIR=$1
 OUTPUT_DIR='./submission_run'
 ATTACK=$2
-EPSILONS='0 1 3'
+EPSILONS='0 1 5 10'
 
 #-------------------------------------------------------------------------------
 # dependencies
