@@ -47,7 +47,7 @@ def main(args):
     print('[info]: x min/max  %0.2f / %0.2f' % (np.min(x_input), np.max(x_input)))
 
     # Run the attack!
-    adv_cleverhans(data_dir, output_dir, names, x_input, attack_type, y_input=y_input, eps=eps)
+    adv_cleverhans(output_dir, names, x_input, attack_type, y_input=y_input, eps=eps)
 
 
 
@@ -85,11 +85,18 @@ def load_images(data_dir):
 
 
 
-def adv_cleverhans(data_dir, save_folder, filenames, x_input, attack_type, y_input, eps):
+def adv_cleverhans(save_folder, filenames, x_input, attack_type, y_input, eps):
     """ Attacks the fmow baseline model with an FGSM attack from cleverhans
 
-    data_dir: directory with the image files
-    eps: a list of perturbation constraints
+        save_folder  : Top level directory where AE will be stored
+        filenames    : names of images to attack; a list of n elements
+        x_input      : image data corresponding to filenames; a tensor of shape [n, ...]
+        attack_type  : the flavor of AE to produce
+        y_input      : ground truth labels corresponding to x_input 
+                       (list of integer class labels); if ground truth is
+                       not known, this should be the empty list.
+        eps          : a list of (scalar) \ell_\infty perturbation constraints
+
     """
     if not os.path.exists(save_folder):
         os.mkdir(save_folder)
@@ -100,11 +107,11 @@ def adv_cleverhans(data_dir, save_folder, filenames, x_input, attack_type, y_inp
    
     sess.run(tf.global_variables_initializer())
 
-    #
+    #--------------------------------------------------
     # Create the model we will attack.
     # Here, this is the FMoW classifier based on DenseNets.
     # Of course, one could attack something else (adversarially trained network, an ensemble, etc.)
-    #
+    #--------------------------------------------------
     model = Sequential()
     model = load_model('cnn_image_only.model')
     model.compile(loss='categorical_crossentropy', optimizer='SGD', metrics=['accuracy'])
@@ -114,9 +121,9 @@ def adv_cleverhans(data_dir, save_folder, filenames, x_input, attack_type, y_inp
     y = tf.placeholder(tf.float32, shape=(None, 63))
 
     #--------------------------------------------------
-    # Use CleverHans (CH) to generate the attack.
+    # We use CleverHans (CH) to generate the attack.
     # Note that the CH API wants a "Model" object.
-    # For Keras models, there is a convenience "wrapper" to help with this.
+    # For Keras models, there is a convenience wrapper to help with this.
     #--------------------------------------------------
     wrap = KerasModelWrapper(model)
     if attack_type.lower() in ['fgm', 'random']:
@@ -128,11 +135,11 @@ def adv_cleverhans(data_dir, save_folder, filenames, x_input, attack_type, y_inp
         raise ValueError('unsupported attack type', attack_type)
 
 
-    # Generate perturbations at various epsilon
+    # Generate attacks for each epsilon value specified.
     for ep in eps:
         print("[info]: Attacking epsilon " + ep)
-        ep = int(ep)
-        ep_float = float(ep)/255.0        # epsilon value in the network's input space
+        ep = int(ep)                      # epsilon in the "raw" input space [0,255]
+        ep_float = float(ep)/255.0        # epsilon in the CNN input space
 
         save_folder_eps = os.path.join(save_folder, str(ep))
         if not os.path.exists(save_folder_eps):
@@ -148,12 +155,14 @@ def adv_cleverhans(data_dir, save_folder, filenames, x_input, attack_type, y_inp
         adv_x = attack.generate(x, **attack_params)
 
         #--------------------------------------------------
-        # process images one at a time (note: it is possible to attack batches as well...)
+        # Attack images one at a time 
+        # (note: it is possible to attack batches as well...)
         #--------------------------------------------------
         y_hat = -1 * np.ones((len(x_input),), dtype=np.int32)
         for i in range(len(x_input)):
             if attack_type.lower() == 'random':
                 # special case: a naive random perturbation attack
+                # This is not an effective attack and exists only for demo purposes.
                 img_out = random_perturbation(x_input[i], ep)
                 img = imagenet_preprocessing(img_out)
                 img = img[np.newaxis, ...]
@@ -176,28 +185,29 @@ def adv_cleverhans(data_dir, save_folder, filenames, x_input, attack_type, y_inp
             # This is just for debugging purposes (not technically required).
             y_hat[i] = np.argmax(model.predict(img, batch_size=1))
 
-        
         #--------------------------------------------------
         # (optional): report AE performance, if we know ground truth
         #--------------------------------------------------
         if len(y_input):
             print('[info]: baseline classifier accuracy on (%s,eps=%d) is %0.2f%%' % (attack_type, ep, 100 * accuracy_score(y_input, y_hat)))
+            if True:
+                np.savez('epsilon_%0.2f.npz' % ep, y_true=y_input, y_hat=y_hat)
 
-        
+ 
 
 def imagenet_preprocessing(image):
     """ Pre-processes images for use with the FMoW baseline.
    
     There are many "standard" ways of pre-processing images for use with CNNs.
-    In this case, the FMoW folks elected to use a "caffe-style" preprocessing
-    which, for original inputs in [0,255], subtracts a mean value and shuffles
+    In this case, the FMoW folks elected to use a "caffe/imagenet-style" 
+    standard which, for inputs in [0,255], subtracts a mean value and shuffles
     the color channels.
 
-    In lieu of whitening the data (dividing by std) they developers elected
-    to scale the translated data by 255.  We follow suit here; 
-    note, however, that it is usually more convenient when working with
-    AE to keep the values in some known space, like [0,1] or [-1,1] so that
-    clipping is more straightforward.
+    In lieu of whitening the data (dividing by std) the developers elected
+    to then scale the translated data by 1/255.  We follow suit here; 
+    note, however, that it is sometimes more convenient when working with
+    AE to keep the values in some known space, like [0,1] or [-1,1] 
+    (so that clipping is more straightforward directly in the optimization).
     """
     img = image.copy().astype(np.float32)
     mean = [103.939, 116.779, 123.68]
@@ -213,10 +223,11 @@ def imagenet_preprocessing(image):
     return img
 
 
-def prepare_image_output(image):
-    """ Undoes the imagenet preprocessing in order to output a clean image
 
-    image: image to be moved to [0, 255] that has been imagenet preprocessed
+def prepare_image_output(image):
+    """ Undoes the imagenet preprocessing in order to output an image in the original space.
+
+        image: preprocessed image to be moved back into [0, 255]
     """
     img = image.copy()
     mean = [103.939, 116.779, 123.68]
@@ -235,7 +246,8 @@ def prepare_image_output(image):
 
 def random_perturbation(x_input, eps):
     """ Generates a input perturbation uniformly at random.
-        This is a poor method for generating AE; only exists for pedagogical purposes.
+        This is a poor method for generating AE; this function
+        only exists for pedagogical purposes.
 
         x_input : an image in the input space [0,255]^d
         epsilon : the maximum \ell_\infty perturbation.
