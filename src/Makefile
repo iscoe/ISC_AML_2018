@@ -15,11 +15,13 @@
 # Feb, 2018
 #-------------------------------------------------------------------------------
 
+# this should point to whatever sample data you are using
+GROUND_TRUTH_DIR=~/Data/FMoW_a
+#GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
+
+# these are temporary directories for demo
 SIM_DIR=./simulated_environment
 TEAM_DIR=$(SIM_DIR)/submissions
-GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
-ATTACK_ZIP_DIR=attacks/sample_attack/submission_run
-#GROUND_TRUTH_DIR=/home/fendlnm1/Fendley/adversarial/ISC_AML_2018/image_sets/FMOW_1000_CORRECT_2
 
 OUTPUT_DIR=./Evaluation_Output
 
@@ -28,39 +30,44 @@ OUTPUT_DIR=./Evaluation_Output
 default :
 	echo "Please pick an explicit target!"
 
-iter-attack :
-	cd ./attacks/IFGM_attack && ./run_attack.sh $(GROUND_TRUTH_DIR)
 
-baseline-attack :
-	cd ./attacks/sample_attack && ./run_attack.sh $(GROUND_TRUTH_DIR)
+baseline-attacks :
+	cd ./attacks/sample_attack && ./run_attack.sh $(GROUND_TRUTH_DIR) fgm
+	cd ./attacks/sample_attack && ./run_attack.sh $(GROUND_TRUTH_DIR) random
 
-
-baseline-defense :
-	cd ./defenses/sample_defense_submission/ && ./defense_zip.sh 
+baseline-defenses :
+	cd ./defenses/sample_defense && ./defense_zip.sh 
 
 
 dummy-framework :
 	echo "creating ground truth"
 	mkdir -p $(SIM_DIR)/ground_truth
 	cp $(GROUND_TRUTH_DIR)/* $(SIM_DIR)/ground_truth
-	echo "creating team A"
-	mkdir -p $(TEAM_DIR)/team_a/attack
-	mkdir -p $(TEAM_DIR)/team_a/defense
-	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_a/defense
-	cp ./attacks/sample_attack/sample_attack_fgm.zip $(TEAM_DIR)/team_a/attack
-	echo "creating team B"
-	mkdir -p $(TEAM_DIR)/team_b/attack
-	mkdir -p $(TEAM_DIR)/team_b/defense	
-	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_b/defense
-	echo "creating team C"
-	mkdir -p $(TEAM_DIR)/team_c/attack
-	mkdir -p $(TEAM_DIR)/team_c/defense
-	cp ./defenses/sample_defense_submission/defense_noop_submission.zip $(TEAM_DIR)/team_c/defense
-
-demo : baseline-attack iter-attack baseline-defense dummy-framework eval
+	@echo "--------------------------"
+	@echo "creating baseline_1"
+	@echo "--------------------------"
+	mkdir -p $(TEAM_DIR)/baseline_1/attack
+	mkdir -p $(TEAM_DIR)/baseline_1/defense
+	cp ./defenses/sample_defense/defense_noop_submission.zip $(TEAM_DIR)/baseline_1/defense
+	cp ./attacks/sample_attack/sample_attack_fgm.zip $(TEAM_DIR)/baseline_1/attack
+	@echo "--------------------------"
+	@echo "creating baseline_2"
+	@echo "--------------------------"
+	mkdir -p $(TEAM_DIR)/baseline_2/attack
+	mkdir -p $(TEAM_DIR)/baseline_2/defense	
+	cp ./defenses/sample_defense/defense_avg_submission.zip $(TEAM_DIR)/baseline_2/defense
+	cp ./attacks/sample_attack/sample_attack_random.zip $(TEAM_DIR)/baseline_2/attack
 
 eval :
-	python evaluate_submissions.py $(TEAM_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 1 5
+	python evaluate_submissions.py $(TEAM_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 1 3
+
+# This just runs all the necessary pieces in order
+demo : baseline-attacks baseline-defenses dummy-framework eval
+
+# Blows away the example framework
+clean :
+	\rm -rf $(SIM_DIR)
+
 
 query :
 	python evaluate_submissions.py $(TEAM_DIR) query $(OUTPUT_DIR)
