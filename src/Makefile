@@ -2,20 +2,15 @@
 # This file serves as an example to show how one might use the example code.
 # Of primary interest are:
 #
-#   baseline-attack   : Demonstrates how to generate AE using CleverHans (CH)
-#   baseline-defense  : Demonstrates how one might attempt to classify images.
-#
-#   dummy-framework   : Creates a local simulation of inputs from
-#                       a few contenstants (for debugging)
-#                       Requires one run the baseline attacks/defenses first.
-#
-#   eval              : Demonstrates evaluation framework.
-#                       Requires running dummy-framework first.
+#   baseline-attacks   : Creates example/baseline attacks 
+#   baseline-defenses  : Create example/baseline defense submissions
+#   demo               : Creates a local competition "simulation" by running
+#                        baseline algorithms against each other.
 #
 # Feb, 2018
 #-------------------------------------------------------------------------------
 
-# this should point to whatever sample data you are using
+# Change this to point to your local sample data (with truth)
 GROUND_TRUTH_DIR=~/Data/FMoW_a
 #GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
 
@@ -39,6 +34,10 @@ baseline-defenses :
 	cd ./defenses/sample_defense && ./defense_zip.sh 
 
 
+# This just runs all the necessary pieces in order
+demo : baseline-attacks baseline-defenses dummy-framework eval
+
+
 dummy-framework :
 	echo "creating ground truth"
 	mkdir -p $(SIM_DIR)/ground_truth
@@ -59,10 +58,8 @@ dummy-framework :
 	cp ./attacks/sample_attack/sample_attack_random.zip $(TEAM_DIR)/baseline_2/attack
 
 eval :
-	python evaluate_submissions.py $(TEAM_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 1 3
+	python evaluate_submissions.py $(TEAM_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 1 5 10
 
-# This just runs all the necessary pieces in order
-demo : baseline-attacks baseline-defenses dummy-framework eval
 
 # Blows away the example framework
 clean :
