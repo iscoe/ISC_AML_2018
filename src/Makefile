@@ -5,14 +5,14 @@
 #   baseline-attacks   : Creates example/baseline attacks 
 #   baseline-defenses  : Create example/baseline defense submissions
 #   demo               : Creates a local competition "simulation" by running
-#                        baseline algorithms against each other.
+#                        some baseline algorithms against each other.
 #
 # Feb, 2018
 #-------------------------------------------------------------------------------
 
 # Change this to point to your local sample data (with truth)
-GROUND_TRUTH_DIR=~/Data/FMoW_a
-#GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
+#GROUND_TRUTH_DIR=~/Data/FMoW_a
+GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
 
 # these are temporary directories for demo
 SIM_DIR=./simulated_environment
@@ -29,6 +29,7 @@ default :
 baseline-attacks :
 	cd ./attacks/sample_attack && ./run_attack.sh $(GROUND_TRUTH_DIR) fgm
 	cd ./attacks/sample_attack && ./run_attack.sh $(GROUND_TRUTH_DIR) random
+	cd ./attacks/sample_attack && ./run_attack.sh $(GROUND_TRUTH_DIR) ifgm
 
 baseline-defenses :
 	cd ./defenses/sample_defense && ./defense_zip.sh 
@@ -43,19 +44,36 @@ dummy-framework :
 	mkdir -p $(SIM_DIR)/ground_truth
 	cp $(GROUND_TRUTH_DIR)/* $(SIM_DIR)/ground_truth
 	@echo "--------------------------"
-	@echo "creating baseline_1"
+	@echo "creating noop-defense"
 	@echo "--------------------------"
-	mkdir -p $(TEAM_DIR)/baseline_1/attack
-	mkdir -p $(TEAM_DIR)/baseline_1/defense
-	cp ./defenses/sample_defense/defense_noop_submission.zip $(TEAM_DIR)/baseline_1/defense
-	cp ./attacks/sample_attack/sample_attack_fgm.zip $(TEAM_DIR)/baseline_1/attack
+	mkdir -p $(TEAM_DIR)/noop/attack
+	mkdir -p $(TEAM_DIR)/noop/defense
+	cp ./defenses/sample_defense/defense_noop_submission.zip $(TEAM_DIR)/noop/defense
 	@echo "--------------------------"
-	@echo "creating baseline_2"
+	@echo "creating averaging defense"
 	@echo "--------------------------"
-	mkdir -p $(TEAM_DIR)/baseline_2/attack
-	mkdir -p $(TEAM_DIR)/baseline_2/defense	
-	cp ./defenses/sample_defense/defense_avg_submission.zip $(TEAM_DIR)/baseline_2/defense
-	cp ./attacks/sample_attack/sample_attack_random.zip $(TEAM_DIR)/baseline_2/attack
+	mkdir -p $(TEAM_DIR)/averaging/attack
+	mkdir -p $(TEAM_DIR)/averaging/defense
+	cp ./defenses/sample_defense/defense_avg_submission.zip $(TEAM_DIR)/averaging/defense
+	@echo "--------------------------"
+	@echo "creating random attack"
+	@echo "--------------------------"
+	mkdir -p $(TEAM_DIR)/random/attack
+	mkdir -p $(TEAM_DIR)/random/defense
+	cp ./attacks/sample_attack/sample_attack_random.zip $(TEAM_DIR)/random/attack
+	@echo "--------------------------"
+	@echo "creating FGM attack"
+	@echo "--------------------------"
+	mkdir -p $(TEAM_DIR)/fgm/attack
+	mkdir -p $(TEAM_DIR)/fgm/defense
+	cp ./attacks/sample_attack/sample_attack_fgm.zip $(TEAM_DIR)/fgm/attack
+	@echo "--------------------------"
+	@echo "creating I-FGM attack"
+	@echo "--------------------------"
+	mkdir -p $(TEAM_DIR)/ifgm/attack
+	mkdir -p $(TEAM_DIR)/ifgm/defense	
+	cp ./attacks/sample_attack/sample_attack_ifgm.zip $(TEAM_DIR)/ifgm/attack
+
 
 eval :
 	python evaluate_submissions.py $(TEAM_DIR) $(GROUND_TRUTH_DIR) $(OUTPUT_DIR) 1 5 10
