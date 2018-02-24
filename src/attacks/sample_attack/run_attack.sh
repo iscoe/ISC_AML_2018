@@ -10,6 +10,7 @@
 DATA_DIR=$1
 OUTPUT_DIR='./submission_run'
 ATTACK=$2
+EPSILONS='0 1 3'
 
 #-------------------------------------------------------------------------------
 # dependencies
@@ -40,7 +41,7 @@ if [ -d $OUTPUT_DIR ]; then
     \rm -rf $OUTPUT_DIR
 fi
 
-PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR $ATTACK 0 1 3
+PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR $ATTACK $EPSILONS
 
 # zip up the submission
 cd $OUTPUT_DIR && zip -r ../sample_attack_$ATTACK.zip ./*
