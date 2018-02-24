@@ -70,18 +70,25 @@ def load_images(data_dir):
 
     # if there are also class labels, load those as well
     labels_file = os.path.join(data_dir, 'labels.csv')
+    ground_truth = load_truth(labels_file, filenames)
+
+    return np.asarray(img_list), filenames, np.array(ground_truth, dtype=np.int32)
+
+
+
+def load_truth(labels_file, image_files):
+    "Load true labels from .csv"
     if os.path.exists(labels_file):
-        print('[info]: also loading ground truth!!')
+        print('[info]: loading ground truth!!')
         truth = {}
         with open(labels_file, 'r') as f:
             for line in f.readlines():
                 filename, label = [x.strip() for x in line.split(",")]
                 truth[filename] = int(label)
-        ground_truth = [truth[f] for f in filenames]
+        ground_truth = [truth[f] for f in image_files]
     else:
         ground_truth = []
-
-    return np.asarray(img_list), filenames, np.array(ground_truth, dtype=np.int32)
+    return ground_truth
 
 
 
