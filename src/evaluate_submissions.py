@@ -326,7 +326,6 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
             y_hat_i = Y_hat[idx][0]
             score[ii] = 1 if (y_hat_i == y_i) else 0
 
-        # TODO: add debug statement to show score for this pair (for debugging)
         results.append((COMPETITION_UNTARGETED, attacker_id, defender_id, epsilon) + tuple(score))
 
     cols = [COMPETITION_COL, ATTACKER_COL, DEFENDER_COL, EPSILON_COL] + test_files
@@ -503,6 +502,9 @@ def compute_metrics(results, out_dir):
         fn = os.path.join(out_dir, 'attack_vs_defense_eps_%d.csv' % epsilon)
         df = pd.DataFrame(X[:,:,idx], index=all_attackers, columns=all_defenders)
         df.to_csv(fn)
+        _info('--------------------------------------------')
+        _info('Results for epsilon %0.2f' % epsilon)
+        _info(df)
 
     #--------------------------------------------------
     # aggregate results
@@ -515,16 +517,18 @@ def compute_metrics(results, out_dir):
     # ranks participants in each contest
     attack_score = np.nanmean(X_net, axis=1)
     df_attack = pd.DataFrame(attack_score, index=all_attackers, columns=('score',))
-    df_attack.sort_values(by='score', ascending=True)
+    df_attack = df_attack.sort_values(by='score', ascending=True)
     df_attack.to_csv(os.path.join(out_dir, 'attack_rank.csv'))
-    _info('Attack results:\n' + str(df_attack))
+    _info('--------------------------------------------')
+    _info('Net attack results:\n' + str(df_attack))
 
     defense_score = np.nanmean(X_net, axis=0)
     df_defense = pd.DataFrame(defense_score, index=all_defenders, columns=('score',))
-    df_defense.sort_values(by='score', ascending=False)
+    df_defense = df_defense.sort_values(by='score', ascending=False)
     df_defense.to_csv(os.path.join(out_dir, 'defense_rank.csv'))
-    _info('Defense results:\n' + str(df_defense))
-    
+    _info('--------------------------------------------')
+    _info('Net defense results:\n' + str(df_defense))
+
 
 
 #-------------------------------------------------------------------------------
