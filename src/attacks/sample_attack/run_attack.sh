@@ -1,4 +1,8 @@
 #!/bin/bash
+#
+#  Example usage:
+#    ./run_attack.sh ~/Data/FMoW_a fgm
+#
 
 #-------------------------------------------------------------------------------
 # update paths as needed for your local configuration
@@ -39,4 +43,4 @@ fi
 PYTHONPATH=./cleverhans python sample_attack.py $DATA_DIR $OUTPUT_DIR $ATTACK 0 1 3
 
 # zip up the submission
-cd $OUTPUT_DIR && zip -r ../sample_attack_fgm.zip ./*
+cd $OUTPUT_DIR && zip -r ../sample_attack_$ATTACK.zip ./*
