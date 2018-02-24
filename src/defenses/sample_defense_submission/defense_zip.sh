@@ -1,4 +1,9 @@
 #!/bin/bash
+#
+# Creates a defense submission (.zip file).
+# Note the metadata.json is needed so we know how to run the code in Docker!
+
+
 if [ ! -f cnn_image_only.model ]; then
     wget https://github.com/fMoW/baseline/releases/download/paper/cnn_image_only.model.zip -O cnn_image_only.model.zip
     unzip cnn_image_only.model.zip
