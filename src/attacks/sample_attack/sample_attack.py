@@ -32,10 +32,10 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 
 def main(args):
     ### Params of the run are here
-    data_dir = args[1]       # directory containing images to attack
-    output_dir = args[2]     # directory where AE should be placed
-    attack_type = args[3]    # attack type to use
-    eps = args[4:]           # the epsilon values to use
+    data_dir = args[1]                   # directory containing images to attack
+    output_dir = args[2]                 # directory where AE should be placed
+    attack_type = args[3]                # attack type to use
+    eps = [float(x) for x in args[4:]]   # the epsilon values to use
 
     if not os.path.isdir(output_dir):
         os.makedirs(output_dir)
@@ -44,6 +44,7 @@ def main(args):
     # This presumes a relatively small set of images (as will be the case in the competition).
     x_input, names, y_input = load_images(data_dir)
     print('[info]: Attacking %d images using method "%s"' % (x_input.shape[0], attack_type))
+    print('[info]: Will use epsilon values: ', str(eps))
     print('[info]: x min/max  %0.2f / %0.2f' % (np.min(x_input), np.max(x_input)))
 
     # Run the attack!
@@ -144,11 +145,11 @@ def adv_cleverhans(save_folder, filenames, x_input, attack_type, y_input, eps):
 
     # Generate attacks for each epsilon value specified.
     for ep in eps:
-        print("[info]: Attacking epsilon " + ep)
-        ep = int(ep)                      # epsilon in the "raw" input space [0,255]
-        ep_float = float(ep)/255.0        # epsilon in the CNN input space
+        print("[info]: Attacking with epsilon", ep)
+        ep = float(ep)                    # epsilon in the "raw" pixel space [0,255]
+        ep_cnn = float(ep)/255.0          # epsilon in the FMoW CNN input space
 
-        save_folder_eps = os.path.join(save_folder, str(ep))
+        save_folder_eps = os.path.join(save_folder, "%d" % int(ep))   # here we assume epsilons are integer values
         if not os.path.exists(save_folder_eps):
             os.mkdir(save_folder_eps)
 
@@ -156,7 +157,7 @@ def adv_cleverhans(save_folder, filenames, x_input, attack_type, y_input, eps):
         # Create Tensorflow variable for the adversarial example and this value of epsilon.
         # Note that different attacks may have different parameters to experiment with...
         #--------------------------------------------------
-        attack_params = {'eps':ep_float}
+        attack_params = {'eps':ep_cnn}
         if attack_type.lower() == 'ifgm':
             attack_params['nb_iter'] = 5   # number of iterations
         adv_x = attack.generate(x, **attack_params)
@@ -178,14 +179,14 @@ def adv_cleverhans(save_folder, filenames, x_input, attack_type, y_input, eps):
                 img_clean = np.expand_dims(x_input[i], axis=0)            # add (trivial) mini-batch dimension
                 img_clean = imagenet_preprocessing(img_clean)             # preprocessing assumed by baseline classifier
                 img = adv_x.eval(session=sess, feed_dict={x:img_clean})   # AE in the input space of the baseline classifier
-                img_out = prepare_image_output(img)                       # AE in the original input space [0,255]
+                img_out = prepare_image_output(img)                       # AE back in the original space [0,255]
 
-            # verify that epsilon constraint is satisfied
+            # verify the epsilon constraint is satisfied
             delta = np.max(np.abs(x_input[i] - 1.0*img_out))
             assert(delta <= (ep + 1e-6))
 
             # Save resulting AE to file
-            img_PIL = Image.fromarray(img_out, 'RGB')
+            img_PIL = Image.fromarray(img_out.astype(np.uint8), 'RGB')
             img_PIL.save(os.path.join(save_folder_eps,filenames[i]))
 
             # Performance of baseline classifier on resulting AE.
