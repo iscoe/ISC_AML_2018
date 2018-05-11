@@ -189,7 +189,7 @@ def prep_NN_image(image):
     img /= 255.0
     return img
 
-def load_good_detections(data_dir, train_dir='train/',num_images=100):
+def load_good_detections(data_dir, train_dir='train/',num_images=100, load_ms=False):
     if not os.path.exists(train_dir):
         os.mkdir(train_dir)
     found = {}
@@ -207,8 +207,14 @@ def load_good_detections(data_dir, train_dir='train/',num_images=100):
             seq_folder = os.path.join(cat_folder, seq)
             for filename in os.listdir(seq_folder):
                 if filename.endswith('.json'):
-                    final_path = os.path.join(seq_folder, filename)
-                    data_list.append((final_path, cat))
+                    if load_ms:
+                        final_path = os.path.join(seq_folder, filename)
+                        data_list.append((final_path, cat))
+                    else:
+                        if not filename[:-5].endswith('msrgb'):
+                            final_path = os.path.join(seq_folder, filename)
+                            data_list.append((final_path, cat))
+
 
     random.shuffle(data_list)
     good_images = []
@@ -239,7 +245,8 @@ def load_good_detections(data_dir, train_dir='train/',num_images=100):
 
 if __name__ == '__main__':
     #os.environ['CUDA_VISIBLE_DEVICES'] = "1"
-    load_good_detections('/home/fendlnm1/FMOW_val_set')
+    #load_good_detections('/home/fendlnm1/fmow_train_set')
+    load_from_full('/home/fendlnm1/fmow_train_set')
     #print(image_batch())
 
 
