@@ -27,7 +27,6 @@ import sys
 import time
 import datetime
 import os
-os.environ['CUDA_VISIBLE_DEVICES'] = '1'
 import glob
 import shutil
 import tempfile
@@ -222,20 +221,19 @@ def run_defense(defense_dir, offense_dir, output_dir):
     #Load metadata from their submission
     metadata = json.load(open(os.path.join(defense_dir,'metadata.json')))
     outputname = '/output/labels.csv'
-    
+    #pdb.set_trace()
 
-    cmd = ['sudo', 'chown','1005:1005',defense_dir]
+    # cmd = ['sudo', 'chown','1005:1005',defense_dir]
+    #subprocess.call(cmd)
+    cmd = ['sudo', 'chmod','777',defense_dir]
     subprocess.call(cmd)
-    cmd = ['sudo', 'chmod','775',defense_dir]
+    # cmd = ['sudo', 'chown','1005:1005',offense_dir]
+    # subprocess.call(cmd)
+    cmd = ['sudo', 'chmod','777',offense_dir]
     subprocess.call(cmd)
-    cmd = ['sudo', 'chown','1005:1005',offense_dir]
-    
-    subprocess.call(cmd)
-    cmd = ['sudo', 'chmod','775',offense_dir]
-    subprocess.call(cmd)
-    cmd = ['sudo', 'chown','33:33',output_dir]
-    subprocess.call(cmd)
-    cmd = ['sudo', 'chmod','775',output_dir]
+    # cmd = ['sudo', 'chown','33:33',output_dir]
+    # subprocess.call(cmd)
+    cmd = ['sudo', 'chmod','777',output_dir]
     subprocess.call(cmd)
 
 
@@ -259,7 +257,7 @@ def run_defense(defense_dir, offense_dir, output_dir):
            '-v', '{0}:/output'.format(output_dir),
            '-v', '{0}:/code'.format(defense_dir),
            '-w', '/code',
-           '--user', 'www-data', metadata['container_gpu'], metadata['entry_point'],
+           'simple_submission', './' + metadata['entry_point'],
            '/input_images', outputname]
     
     subprocess.call(cmd)
@@ -289,6 +287,10 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
     def_dir = tempfile.mkdtemp()
     with ZipFile(defense_zip, 'r') as zf:
         zf.extractall(path=def_dir)
+    sub_def_dir = os.path.join(def_dir, os.listdir(def_dir)[0])
+    if len(os.listdir(def_dir)) == 1 and os.path.isdir(sub_def_dir):
+        def_dir = sub_def_dir
+
 
     results = []
     
@@ -303,7 +305,7 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
         input_dir = os.path.join(raw_dir, "%d" % epsilon)
 
         prepare_ae(input_dir, def_in_dir, ref_dir, f_con)
-        if not _are_images_equivalent_p(input_dir, def_in_dir):
+        if not _are_images_equivalent_p(def_in_dir, input_dir):
             _warning('input images did not satisfy constraints!!  They have been clipped accordingly.')
         attack_files = [os.path.basename(x) for x in _image_files(def_in_dir)]  # list of files created by attacker
 
@@ -438,7 +440,7 @@ def run_attacks_vs_defenses(submission_dir, truth_dir, epsilon_values):
                 all_results.append(result_this_pair)
             except Exception as ex:
                 _warning('%s vs %s failed! %s' % (attacker_id, defender_id, str(ex)))
-
+            #pdb.set_trace()
     return pd.concat(all_results)
 
 
@@ -460,7 +462,7 @@ def output_query(results, out_dir):
             csv_return = np.concatenate((csv_return, ret_arr), axis=0)
 
     np.savetxt(os.path.join(out_dir,'results.csv'),csv_return,fmt='%s',delimiter=',')
-    pdb.set_trace()
+    #pdb.set_trace()
     
         
 

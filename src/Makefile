@@ -12,11 +12,11 @@
 
 # Change this to point to your local sample data (with truth)
 #GROUND_TRUTH_DIR=~/Data/FMoW_a
-GROUND_TRUTH_DIR=/home/fendlnm1/FMOW_1000_CORRECT
+GROUND_TRUTH_DIR=/home/fendlnm1/AML_Practice_Round_2_RGB
 
 # these are temporary directories for demo
-SIM_DIR=./simulated_environment
-TEAM_DIR=$(SIM_DIR)/submissions
+SIM_DIR=/
+TEAM_DIR=/nfs/
 
 OUTPUT_DIR=./Evaluation_Output
 
