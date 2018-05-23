@@ -26,7 +26,7 @@ For the Docker image, any publicly-available docker container (e.g. from the [Go
 }
 ``` 
 
-You should leave the "type" field as-is and modify the other three fields as needed for your code (although you probably are using a GPU and therefore it is the "container_gpu" and "entry_point" fields which are most important).  A concrete example that uses a public image from the Google Container Registry (prefix "gcr.io") is:
+You should leave the <code>"type"</code> field as-is and modify the other three fields as needed for your code (although you probably are using a GPU and therefore it is the "container_gpu" and "entry_point" fields which are most important).  A concrete example that uses a public image from the Google Container Registry (prefix "gcr.io") is:
 ```
 {
   "type": "defense",
