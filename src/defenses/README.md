@@ -19,14 +19,14 @@ For the Docker image, any publicly-available docker container (e.g. from the [Go
 
 ```
 {
-	"type": "defense", 
-	"container": "YOUR-DOCKER-CONTAINER-NAME-GOES-HERE",   
-	"container_gpu": "YOUR-DOCKER-CONTAINER-NAME-GOES-HERE",  
-	"entry_point": "YOUR-SCRIPT-NAME-GOES-HERE"  
+  "type": "defense", 
+  "container": "YOUR-DOCKER-CONTAINER-NAME-GOES-HERE",   
+  "container_gpu": "YOUR-DOCKER-CONTAINER-NAME-GOES-HERE",  
+  "entry_point": "YOUR-SCRIPT-NAME-GOES-HERE"  
 }
 ``` 
 
-You should leave the <code>"type"</code> field as-is and modify the other three fields as needed for your code (although you probably are using a GPU and therefore it is the "container_gpu" and "entry_point" fields which are most important).  A concrete example that uses a public image from the Google Container Registry (prefix "gcr.io") is:
+You should leave the <code>"type"</code> field as-is and modify the other three fields as needed for your code (although you probably are using a GPU and therefore it is the <code>"container_gpu"</code> and <code>"entry_point"</code> fields which are most important).  A concrete example that uses a public image from the Google Container Registry (prefix "gcr.io") is:
 ```
 {
   "type": "defense",
@@ -37,7 +37,7 @@ You should leave the <code>"type"</code> field as-is and modify the other three 
 ```
 If you would like to use your own custom docker image, DockerHub (link above) allows one to publish images for free.   This is the preferred way of providing us with a custom image to use.
 
-The "entry_point" should be the name of a bash shell script that takes two arguments, a directory containing images to classify and an output file where classification outputs will be written.  This script should then launch your classifier with these arguments (and anything else you need).  We recommend just using one of the [examples](./sample_defense/run_defense_noop.sh)  we provide (suitably modified as needed for your code).
+The <code>"entry_point"</code> should be the name of a bash shell script that takes two arguments, a directory containing images to classify and an output file where classification outputs will be written.  This script should then launch your classifier with these arguments (and anything else you need).  We recommend just using one of the [examples](./sample_defense/run_defense_noop.sh)  we provide (suitably modified as needed for your code).
 
 
 ### Local Dockerfiles
