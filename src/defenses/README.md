@@ -9,9 +9,9 @@ The sample_defense_submission included is based on the fMoW baseline classifier.
 
 ### Submission Format
 
-In addition to your software implementation, a defense submission must contain a file "metadata.json" that informs the evaluation script how to run your code.  In particular, it tells the script:
+In addition to your software implementation, a defense submission must contain a file "metadata.json" that informs the evaluation script how to run your code.  In particular, it tells the evaluation script:
 
-1. which Docker container to use with your code and 
+1. which Docker container to use with your code submission and 
 2. what toplevel script in your submission to run in order to execute the defense (i.e. the "entry point").  
 
 For the Docker image, any publicly-available docker container (e.g. from the [Google Container Registry](https://cloud.google.com/container-registry/) or [DockerHub](https://hub.docker.com)) should be fine.  Alternately, Neil has created a custom local image which is also available for your use (more on that below).  The format of the "metadata.json" file is as follows:
@@ -26,7 +26,7 @@ For the Docker image, any publicly-available docker container (e.g. from the [Go
 }
 ``` 
 
-A concrete example that uses a public image from the Google Container Registry (prefix "gcr.io") is:
+You should leave the "type" field as-is and modify the other three fields as needed for your code (although you probably are using a GPU and therefore it is the "container_gpu" and "entry_point" fields which are most important).  A concrete example that uses a public image from the Google Container Registry (prefix "gcr.io") is:
 ```
 {
   "type": "defense",
