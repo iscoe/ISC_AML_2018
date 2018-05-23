@@ -9,12 +9,12 @@ The sample_defense_submission included is based on the fMoW baseline classifier.
 
 ### Submission Format
 
-In addition to your software implementation, a defense submission must contain a file "metadata.json" that informs the evaluation script how to run your code.  In particular, it tells the script 
+In addition to your software implementation, a defense submission must contain a file "metadata.json" that informs the evaluation script how to run your code.  In particular, it tells the script:
 
 1. which Docker container to use with your code and 
-2. what script in your submission to run in order to execute the evaluation (i.e. the "entry point").  
+2. what toplevel script in your submission to run in order to execute the defense (i.e. the "entry point").  
 
-Any publicly-available docker container (e.g. from the [Google Container Registry](https://cloud.google.com/container-registry/) or [DockerHub](https://hub.docker.com)) should be fine.  Alternately, Neil has created a custom local image which is also available for your use (more on that below).  The format of the "metadata.json" file is as follows:
+For the Docker image, any publicly-available docker container (e.g. from the [Google Container Registry](https://cloud.google.com/container-registry/) or [DockerHub](https://hub.docker.com)) should be fine.  Alternately, Neil has created a custom local image which is also available for your use (more on that below).  The format of the "metadata.json" file is as follows:
 
 
 ```
@@ -35,8 +35,9 @@ A concrete example that uses a public image from the Google Container Registry (
   "entry_point": "run_defense.sh"
 }
 ```
-
 If you would like to use your own custom docker image, DockerHub (link above) allows one to publish images for free.   This is the preferred way of providing us with an image to use.
+
+The entry point script should be a bash shell script that takes two arguments, a directory containing images to classify and an output file where classification outputs will be written.  This script should then launch your classifier with these arguments (and anything else you need).  We recommend just using one of the [examples](./sample_defense/run_defense_noop.sh)  we provide (suitably modified as needed for your code).
 
 
 ### Local Dockerfiles
