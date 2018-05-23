@@ -35,12 +35,12 @@ You should leave the "type" field as-is and modify the other three fields as nee
   "entry_point": "run_defense.sh"
 }
 ```
-If you would like to use your own custom docker image, DockerHub (link above) allows one to publish images for free.   This is the preferred way of providing us with an image to use.
+If you would like to use your own custom docker image, DockerHub (link above) allows one to publish images for free.   This is the preferred way of providing us with a custom image to use.
 
-The entry point script should be a bash shell script that takes two arguments, a directory containing images to classify and an output file where classification outputs will be written.  This script should then launch your classifier with these arguments (and anything else you need).  We recommend just using one of the [examples](./sample_defense/run_defense_noop.sh)  we provide (suitably modified as needed for your code).
+The "entry_point" should be the name of a bash shell script that takes two arguments, a directory containing images to classify and an output file where classification outputs will be written.  This script should then launch your classifier with these arguments (and anything else you need).  We recommend just using one of the [examples](./sample_defense/run_defense_noop.sh)  we provide (suitably modified as needed for your code).
 
 
 ### Local Dockerfiles
-In addition to all publicly available docker images, Neil has also created a local Docker image that works with the sample baseline and is available for your use as well.  If you would like to use this image, you can build the image locally using his [Dockerfile](./Dockerfile) and then just use "simple_submission" as your Docker image (see [metadata.json](./sample_defense/metadata.json)).
+In addition to all publicly available docker images, Neil has also created a local Docker image that works with the sample baseline and is available for your use as well.  If you would like to use this image, you can build the image locally using his [Dockerfile](./Dockerfile) and then just use "simple_submission" as your Docker image (see the sample defense [metadata.json](./sample_defense/metadata.json)).
 
-If neither of these options (public Dockerfile or Neil's example) are sufficient, please contact us and we'll arrange to get your Docker image running locally.  
+If neither of these options (public Dockerfile or Neil's local image) are sufficient, please contact us and we'll make alternate arrangements.
