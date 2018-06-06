@@ -35,6 +35,7 @@ def prep_image(filepath, train_dir, contextMultWidth = 0.15,
     jsonData = json.load(open(filepath))
     img_filename = filepath[:-5] + '.jpg' 
     basename = os.path.basename(img_filename[:-4])
+    track_name = filepath.split('/')[-2]
     allResults = []
     allCats = []
     for bb in jsonData['bounding_boxes']:
@@ -44,13 +45,16 @@ def prep_image(filepath, train_dir, contextMultWidth = 0.15,
         outBaseName = basename+'_'+ ('%d' % bb['ID']) + '.png'
 
         cat_dir = os.path.join(train_dir, category+'/')
-        currOut = os.path.join(cat_dir, outBaseName)
+        track_dir = os.path.join(cat_dir, track_name)
+        currOut = os.path.join(track_dir, outBaseName)
         if not os.path.exists(currOut):
             if save:
-                if not os.path.exists(cat_dir):
-                    if not os.path.exists(train_dir):
-                        os.mkdir(train_dir)
-                    os.mkdir(cat_dir)
+                if not os.path.exists(track_dir):
+                    if not os.path.exists(cat_dir):
+                        if not os.path.exists(train_dir):
+                            os.mkdir(train_dir)
+                        os.mkdir(cat_dir)
+                    os.mkdir(track_dir)
             img_pil = Image.open(img_filename)
             img = np.asarray(img_pil)
     
@@ -110,7 +114,7 @@ def prep_image(filepath, train_dir, contextMultWidth = 0.15,
             subImg_PIL = subImg_PIL.resize((224,224))
             allResults.append(np.asarray(subImg_PIL))
             if save:
-                print("saving out the image")
+                #print("saving out the image")
                 subImg_PIL.save(currOut)
             cat_value = CATEGORY_NAMES.index(category) 
             allCats.append(to_categorical(cat_value, 63))
@@ -160,6 +164,30 @@ def load_from_full(data_dir,train_dir='train/'):
                             print("[ INFO ]:  Processing image ", counter)
                         counter += 1
                         x,y = prep_image(final_path,train_dir)
+        all_jsons = np.asarray(all_jsons)
+        random.shuffle(all_jsons)
+        np.save((os.path.join(train_dir,'fmow_all_filenames.npy')), all_jsons)
+    else:
+        all_jsons = np.load(os.path.join(train_dir,'fmow_all_filenames.npy'))
+    return all_jsons
+
+def load_category(data_dir,cat,train_dir='train/'):
+    counter = 0
+    if not os.path.exists(os.path.join(train_dir,'fmow_all_filenames.npy')):
+        all_jsons = []
+        counter = 0
+        cat_folder = os.path.join(data_dir,cat)
+        folders = os.listdir(cat_folder)
+        for folder in folders:
+            direc = os.path.join(cat_folder,folder)
+            for filename in os.listdir(direc):
+                if filename.endswith('.json'):
+                    final_path = os.path.join(direc,filename)
+                    all_jsons.append(final_path)
+                    if counter % 1000 == 0:
+                        print("[ INFO ]:  Processing image ", counter)
+                    counter += 1
+                    x,y = prep_image(final_path,train_dir)
         all_jsons = np.asarray(all_jsons)
         random.shuffle(all_jsons)
         np.save((os.path.join(train_dir,'fmow_all_filenames.npy')), all_jsons)
@@ -245,8 +273,6 @@ def load_good_detections(data_dir, train_dir='train/',num_images=100, load_ms=Fa
 
 if __name__ == '__main__':
     #os.environ['CUDA_VISIBLE_DEVICES'] = "1"
-    #load_good_detections('/home/fendlnm1/fmow_train_set')
-    load_from_full('/home/fendlnm1/fmow_train_set')
     #print(image_batch())
 
 
