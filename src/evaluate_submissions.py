@@ -130,10 +130,7 @@ def enforce_ell_infty_constraint(x_ae, x_orig, epsilon, clip_min=0, clip_max=255
     epsilon : the perturbation constraint (scalar)
     """
     delta = np.subtract(x_ae, x_orig, dtype=np.int16)
-    if np.any(np.abs(delta) > epsilon):
-        pdb.set_trace() # TEMP
     delta = np.clip(delta, -epsilon, epsilon)
-    #print(np.array_equal(x_ae, x_orig + delta))
     return np.clip(x_orig + delta, clip_min, clip_max).astype(np.uint8)
 
 
@@ -252,13 +249,23 @@ def run_defense(defense_dir, offense_dir, output_dir):
     # subprocess.call(cmd)
     
     #create nvidia docker command to run
-    cmd = ['sudo', 'nvidia-docker', 'run',
+    if metadata['container_gpu'] == 'dl-docker:ICS':
+        cmd = ['sudo', 'nvidia-docker', 'run', '--runtime=nvidia'
            '-v', '{0}:/input_images'.format(offense_dir),
            '-v', '{0}:/output'.format(output_dir),
            '-v', '{0}:/code'.format(defense_dir),
            '-w', '/code',
-           'simple_submission', './' + metadata['entry_point'],
+           metadata['container_gpu'], './' + metadata['entry_point'],
            '/input_images', outputname]
+    else:
+        cmd = ['sudo', 'nvidia-docker', 'run',
+           '-v', '{0}:/input_images'.format(offense_dir),
+           '-v', '{0}:/output'.format(output_dir),
+           '-v', '{0}:/code'.format(defense_dir),
+           '-w', '/code',
+           metadata['container_gpu'], './' + metadata['entry_point'],
+           '/input_images', outputname]
+    
     
     subprocess.call(cmd)
 
@@ -282,7 +289,9 @@ def run_one_attack_vs_one_defense(attacker_id, attack_zip, defender_id, defense_
     raw_dir = tempfile.mkdtemp()          # we unzip attacker's images here
     with ZipFile(attack_zip, 'r') as zf:
         zf.extractall(path=raw_dir)
-
+    sub_att_dir = os.path.join(raw_dir, os.listdir(raw_dir)[0])
+    if len(os.listdir(raw_dir)) == 1 and os.path.isdir(sub_att_dir):
+        raw_dir = sub_att_dir
     # Extract defense submission (executable code)
     def_dir = tempfile.mkdtemp()
     with ZipFile(defense_zip, 'r') as zf:
@@ -514,7 +523,11 @@ def compute_metrics(results, out_dir):
     X_net = np.sum(X, axis=2) / float(len(all_epsilon))
     fn = os.path.join(out_dir, 'attack_vs_defense.csv')
     df = pd.DataFrame(X_net, index=all_attackers, columns=all_defenders)
-    df.to_csv(fn)
+    final_df = df.copy()
+    final_df['mean'] = df.mean(numeric_only=True, axis=1)
+    final_df.loc['mean'] = df.mean()
+    final_df = final_df.round(5)
+    final_df.to_csv(fn)
 
     # ranks participants in each contest
     attack_score = np.nanmean(X_net, axis=1)
